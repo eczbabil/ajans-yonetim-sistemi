@@ -47,3 +47,4 @@ class Arama(db.Model):
             'durum': self.durum
         }
 
+
