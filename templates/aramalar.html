@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Arama Kayıtları - CRM{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item active"><i class="bi bi-telephone"></i> Aramalar</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Sayfa Başlığı -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="fw-bold">
+                <i class="bi bi-telephone"></i> Arama Kayıtları - CRM
+            </h2>
+            <p class="text-muted">Müşteri aramaları ve takip sistemi</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('arama_ekle') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Yeni Arama Kaydı
+            </a>
+        </div>
+    </div>
+
+    <!-- Geri Dönüş Uyarısı -->
+    {% if geri_donus_gereken > 0 %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
+                <div>
+                    <strong>Dikkat!</strong> {{ geri_donus_gereken }} adet geri dönüş yapılması gereken arama var.
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Arama Listesi -->
+    <div class="row">
+        <div class="col">
+            <div class="modern-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Tüm Aramalar</h5>
+                    <span class="badge bg-primary">{{ aramalar|length }} kayıt</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if aramalar %}
+                    <div class="table-responsive">
+                        <table class="table table-modern table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Müşteri</th>
+                                    <th>Arayan/Aranan</th>
+                                    <th>Konu</th>
+                                    <th>Sonuç</th>
+                                    <th>Sorumlu</th>
+                                    <th>Geri Dönüş</th>
+                                    <th>Durum</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for arama in aramalar %}
+                                <tr>
+                                    <td>{{ arama.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td>
+                                        {% if arama.musteri_id %}
+                                            <a href="{{ url_for('musteri_detay', musteri_id=arama.musteri_id) }}">
+                                                {{ arama.musteri_id }}
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ arama.arayan_aranan }}</td>
+                                    <td>
+                                        <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            {{ arama.konu }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if arama.sonuc == 'Tamamlandı' %}
+                                            <span class="badge ok">{{ arama.sonuc }}</span>
+                                        {% elif arama.sonuc == 'Geri Dönülecek' %}
+                                            <span class="badge wait">{{ arama.sonuc }}</span>
+                                        {% elif arama.sonuc == 'Olumsuz' %}
+                                            <span class="badge warn">{{ arama.sonuc }}</span>
+                                        {% else %}
+                                            <span class="badge info">{{ arama.sonuc }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ arama.sorumlu_kisi or '-' }}</td>
+                                    <td>
+                                        {% if arama.geri_donus_tarihi %}
+                                            {% set today = (now or datetime.now()).date() %}
+                                            {% if arama.geri_donus_tarihi < today and arama.durum == 'Bekliyor' %}
+                                                <span class="badge warn">
+                                                    <i class="bi bi-exclamation-triangle"></i> 
+                                                    {{ arama.geri_donus_tarihi.strftime('%d.%m.%Y') }}
+                                                </span>
+                                            {% else %}
+                                                {{ arama.geri_donus_tarihi.strftime('%d.%m.%Y') }}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if arama.durum == 'Tamamlandı' %}
+                                            <span class="status-dot success"></span><span>Tamamlandı</span>
+                                        {% elif arama.durum == 'İptal' %}
+                                            <span class="status-dot danger"></span><span>İptal</span>
+                                        {% else %}
+                                            <span class="status-dot warning"></span><span>Bekliyor</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('arama_duzenle', arama_id=arama.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Düzenle">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('arama_sil', arama_id=arama.id) }}" 
+                                              style="display:inline;" 
+                                              onsubmit="return confirm('Bu arama kaydını silmek istediğinizden emin misiniz?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-5 text-center text-muted">
+                        <i class="bi bi-telephone-x fs-1 mb-3 d-block"></i>
+                        <p>Henüz arama kaydı bulunmuyor.</p>
+                        <a href="{{ url_for('arama_ekle') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> İlk Aramayı Ekle
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

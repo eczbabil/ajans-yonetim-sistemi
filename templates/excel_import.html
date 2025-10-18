@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel'den İçe Aktar - Sisyphos Ajans</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">🏢 Sisyphos Ajans</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('musteriler') }}">Müşteriler</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('is_gunlugu') }}">İş Günlüğü</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('teslimatlar') }}">Teslimatlar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('sosyal_medya') }}">Sosyal Medya</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">🏠 Ana Sayfa</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Excel'den Veri İçe Aktar</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <strong>Desteklenen Formatlar:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Müşteri bilgileri (Müşteri Adı, Sektör, Aylık Ücret, vb.)</li>
+                                <li>İş günlüğü kayıtları</li>
+                                <li>Teslimat bilgileri</li>
+                                <li>Sosyal medya metrikleri</li>
+                            </ul>
+                        </div>
+
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="file" class="form-label">Excel Dosyası Seçin (.xlsx formatında)</label>
+                                <input type="file" class="form-control" id="file" name="file" accept=".xlsx" required>
+                                <div class="form-text">Sadece .xlsx uzantılı dosyalar kabul edilir.</div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">İptal</a>
+                                <button type="submit" class="btn btn-success">Dosyayı İçe Aktar</button>
+                            </div>
+                        </form>
+
+                        {% if get_flashed_messages() %}
+                        <div class="mt-3">
+                            {% with messages = get_flashed_messages() %}
+                                {% for message in messages %}
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                                {% endfor %}
+                            {% endwith %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Kullanım Talimatları</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Excel Dosyası Format Gereksinimleri:</h6>
+                        <ul>
+                            <li><strong>Müşteriler Sayfası:</strong> Sütun başlıkları: Müşteri Adı, Sektör, Aylık Ücret (TL), İlgili Kişi, Telefon, E-posta, Notlar</li>
+                            <li><strong>İş Günlüğü Sayfası:</strong> Tarih, Proje, Aktivite Türü, Açıklama, Süre (dk), vb.</li>
+                            <li><strong>Teslimatlar Sayfası:</strong> Teslim Türü, Başlık, Sorumlu Kişi, Teslim Tarihi, vb.</li>
+                            <li><strong>Sosyal Medya Sayfası:</strong> Platform, İçerik Başlığı, Etkileşim, Görüntülenme, vb.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

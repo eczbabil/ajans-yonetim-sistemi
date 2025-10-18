@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{% if arama %}Arama Düzenle{% else %}Yeni Arama Kaydı{% endif %} - CRM{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('aramalar') }}"><i class="bi bi-telephone"></i> Aramalar</a></li>
+                <li class="breadcrumb-item active">{% if arama %}Düzenle{% else %}Yeni Kayıt{% endif %}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="fw-bold">
+                <i class="bi bi-telephone-plus"></i> 
+                {% if arama %}Arama Kaydını Düzenle{% else %}Yeni Arama Kaydı{% endif %}
+            </h2>
+            <p class="text-muted">Müşteri arama detayları ve takip bilgileri</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="modern-card">
+                <div class="card-body p-4">
+                    <form method="POST" class="form-modern">
+                        <div class="row g-3">
+                            <!-- Tarih -->
+                            <div class="col-md-6">
+                                <label for="tarih" class="form-label">
+                                    <i class="bi bi-calendar"></i> Tarih *
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="tarih" 
+                                       name="tarih" 
+                                       value="{% if arama %}{{ arama.tarih.strftime('%Y-%m-%d') }}{% else %}{{ now.strftime('%Y-%m-%d') if now else '' }}{% endif %}"
+                                       required>
+                            </div>
+
+                            <!-- Müşteri -->
+                            <div class="col-md-6">
+                                <label for="musteri_id" class="form-label">
+                                    <i class="bi bi-person"></i> Müşteri *
+                                </label>
+                                <select class="form-select" id="musteri_id" name="musteri_id" required>
+                                    <option value="">Seçiniz...</option>
+                                    {% for musteri in musteriler %}
+                                        <option value="{{ musteri.id }}" 
+                                            {% if (arama and arama.musteri_id == musteri.id) or (secili_musteri_id == musteri.id) %}selected{% endif %}>
+                                            {{ musteri.ad }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Arayan/Aranan -->
+                            <div class="col-md-6">
+                                <label for="arayan_aranan" class="form-label">
+                                    <i class="bi bi-person-badge"></i> Arayan/Aranan Kişi
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="arayan_aranan" 
+                                       name="arayan_aranan"
+                                       value="{% if arama %}{{ arama.arayan_aranan }}{% endif %}"
+                                       placeholder="Örn: Ahmet Yılmaz">
+                            </div>
+
+                            <!-- Sorumlu Kişi -->
+                            <div class="col-md-6">
+                                <label for="sorumlu_kisi" class="form-label">
+                                    <i class="bi bi-person-check"></i> Sorumlu Kişi
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="sorumlu_kisi" 
+                                       name="sorumlu_kisi"
+                                       value="{% if arama %}{{ arama.sorumlu_kisi }}{% endif %}"
+                                       placeholder="Görüşmeyi yapan kişi">
+                            </div>
+
+                            <!-- Sonuç -->
+                            <div class="col-md-6">
+                                <label for="sonuc" class="form-label">
+                                    <i class="bi bi-check-circle"></i> Sonuç *
+                                </label>
+                                <select class="form-select" id="sonuc" name="sonuc" required>
+                                    <option value="">Seçiniz...</option>
+                                    <option value="Not Alındı" {% if arama and arama.sonuc == 'Not Alındı' %}selected{% endif %}>Not Alındı</option>
+                                    <option value="Tamamlandı" {% if arama and arama.sonuc == 'Tamamlandı' %}selected{% endif %}>Tamamlandı</option>
+                                    <option value="Geri Dönülecek" {% if arama and arama.sonuc == 'Geri Dönülecek' %}selected{% endif %}>Geri Dönülecek</option>
+                                    <option value="Olumsuz" {% if arama and arama.sonuc == 'Olumsuz' %}selected{% endif %}>Olumsuz</option>
+                                </select>
+                            </div>
+
+                            <!-- Geri Dönüş Tarihi -->
+                            <div class="col-md-6">
+                                <label for="geri_donus_tarihi" class="form-label">
+                                    <i class="bi bi-calendar-event"></i> Geri Dönüş Tarihi
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="geri_donus_tarihi" 
+                                       name="geri_donus_tarihi"
+                                       value="{% if arama and arama.geri_donus_tarihi %}{{ arama.geri_donus_tarihi.strftime('%Y-%m-%d') }}{% endif %}">
+                                <small class="text-muted">Geri arama yapılacaksa tarih belirtin</small>
+                            </div>
+
+                            <!-- Konu -->
+                            <div class="col-12">
+                                <label for="konu" class="form-label">
+                                    <i class="bi bi-chat-left-text"></i> Konu *
+                                </label>
+                                <textarea class="form-control" 
+                                          id="konu" 
+                                          name="konu" 
+                                          rows="3" 
+                                          required 
+                                          placeholder="Görüşme konusu...">{% if arama %}{{ arama.konu }}{% endif %}</textarea>
+                            </div>
+
+                            <!-- Notlar -->
+                            <div class="col-12">
+                                <label for="notlar" class="form-label">
+                                    <i class="bi bi-journal"></i> Notlar
+                                </label>
+                                <textarea class="form-control" 
+                                          id="notlar" 
+                                          name="notlar" 
+                                          rows="4" 
+                                          placeholder="Detaylı notlar, sonuç, aksiyon maddeleri...">{% if arama %}{{ arama.notlar }}{% endif %}</textarea>
+                            </div>
+
+                            <!-- Durum (Sadece Düzenleme Modunda) -->
+                            {% if arama %}
+                            <div class="col-md-6">
+                                <label for="durum" class="form-label">
+                                    <i class="bi bi-flag"></i> Durum
+                                </label>
+                                <select class="form-select" id="durum" name="durum">
+                                    <option value="Bekliyor" {% if arama.durum == 'Bekliyor' %}selected{% endif %}>Bekliyor</option>
+                                    <option value="Tamamlandı" {% if arama.durum == 'Tamamlandı' %}selected{% endif %}>Tamamlandı</option>
+                                    <option value="İptal" {% if arama.durum == 'İptal' %}selected{% endif %}>İptal</option>
+                                </select>
+                            </div>
+                            {% endif %}
+
+                            <!-- Butonlar -->
+                            <div class="col-12">
+                                <hr class="my-4">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('aramalar') }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i> İptal
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save"></i> 
+                                        {% if arama %}Güncelle{% else %}Kaydet{% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sisyphos Ajans{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item active">
+                    <i class="bi bi-house-door"></i> Dashboard
+                </li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Sayfa Başlığı -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="fw-bold">
+                <i class="bi bi-graph-up"></i> Ajans Dashboard
+            </h2>
+            <p class="text-muted">Genel bakış ve performans metrikleri</p>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('musteri_ekle') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Yeni Müşteri
+            </a>
+            <a href="{{ url_for('is_ekle') }}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Yeni İş
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Kartları -->
+    <div class="row g-3 mb-4">
+        <!-- Toplam Müşteri -->
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card primary">
+                <h4><i class="bi bi-people"></i> Toplam Müşteri</h4>
+                <div class="value">{{ metrics.toplam_musteri }}</div>
+                <div class="subtitle">Aktif müşteri sayısı</div>
+            </div>
+        </div>
+
+        <!-- Bu Ay İş -->
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card success">
+                <h4><i class="bi bi-calendar-check"></i> Bu Ay İş</h4>
+                <div class="value">{{ metrics.bu_ay_is }}</div>
+                <div class="subtitle">{{ metrics.bu_ay_saat }} saat çalışma</div>
+            </div>
+        </div>
+
+        <!-- Onaylanan Teslimatlar -->
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card warning">
+                <h4><i class="bi bi-box-seam"></i> Onaylanan</h4>
+                <div class="value">{{ metrics.onaylanan_teslimat }}</div>
+                <div class="subtitle">Tamamlanan teslimatlar</div>
+            </div>
+        </div>
+
+        <!-- Toplam Çalışma Saati -->
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card danger">
+                <h4><i class="bi bi-clock-history"></i> Toplam Saat</h4>
+                <div class="value">{{ metrics.toplam_saat }}</div>
+                <div class="subtitle">Tüm zamanlar</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İkincil Metrikler -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <h4><i class="bi bi-instagram"></i> Reels Sayısı</h4>
+                <div class="value">{{ metrics.reels_sayisi }}</div>
+                <div class="subtitle">Sosyal medya içerikleri</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <h4><i class="bi bi-hourglass-split"></i> Bekleyen</h4>
+                <div class="value">{{ metrics.bekleyen_teslimat }}</div>
+                <div class="subtitle">Devam eden teslimatlar</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <h4><i class="bi bi-activity"></i> Ortalama</h4>
+                <div class="value">
+                    {% if metrics.toplam_musteri > 0 %}
+                        {{ "%.1f"|format(metrics.bu_ay_is / metrics.toplam_musteri) }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </div>
+                <div class="subtitle">İş / Müşteri (bu ay)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grafikler -->
+    <div class="row g-3 mb-4">
+        <!-- İş Tipi Dağılımı -->
+        <div class="col-lg-6">
+            <div class="chart-container" style="height: 350px;">
+                <h5><i class="bi bi-pie-chart"></i> İş Tipi Dağılımı</h5>
+                <canvas id="isTipiChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Teslimat Durum Dağılımı -->
+        <div class="col-lg-6">
+            <div class="chart-container" style="height: 350px;">
+                <h5><i class="bi bi-bar-chart"></i> Teslimat Durumları</h5>
+                <canvas id="teslimatDurumChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Günlük İş Adedi (Son 30 Gün) -->
+        <div class="col-lg-8">
+            <div class="chart-container" style="height: 350px;">
+                <h5><i class="bi bi-graph-up"></i> Günlük İş Adedi (Son 30 Gün)</h5>
+                <canvas id="gunlukIsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Kişi Başı İş Sayısı (Top 5) -->
+        <div class="col-lg-4">
+            <div class="chart-container" style="height: 350px;">
+                <h5><i class="bi bi-person-badge"></i> Top 5 Katkı</h5>
+                <canvas id="kisiBasiChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı Erişim Kartları -->
+    <div class="row g-3">
+        <div class="col-md-3">
+            <a href="{{ url_for('musteriler') }}" class="text-decoration-none">
+                <div class="modern-card p-4 text-center">
+                    <i class="bi bi-people fs-1 text-primary"></i>
+                    <h5 class="mt-3 mb-0">Müşteriler</h5>
+                    <p class="text-muted small">Müşteri listesi ve detaylar</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('is_gunlugu') }}" class="text-decoration-none">
+                <div class="modern-card p-4 text-center">
+                    <i class="bi bi-journal-text fs-1 text-success"></i>
+                    <h5 class="mt-3 mb-0">İş Günlüğü</h5>
+                    <p class="text-muted small">Yapılan işler ve kayıtlar</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('teslimatlar') }}" class="text-decoration-none">
+                <div class="modern-card p-4 text-center">
+                    <i class="bi bi-box-seam fs-1 text-warning"></i>
+                    <h5 class="mt-3 mb-0">Teslimatlar</h5>
+                    <p class="text-muted small">Teslimat takibi</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('sosyal_medya') }}" class="text-decoration-none">
+                <div class="modern-card p-4 text-center">
+                    <i class="bi bi-instagram fs-1 text-danger"></i>
+                    <h5 class="mt-3 mb-0">Sosyal Medya</h5>
+                    <p class="text-muted small">İçerik performansı</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Chart.js renk paleti
+const colors = {
+    primary: '#2563eb',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#0ea5e9',
+    purple: '#8b5cf6',
+    pink: '#ec4899',
+    indigo: '#6366f1'
+};
+
+// İş Tipi Dağılımı
+const isTipiData = {{ is_tipi_dagilimi|tojson }};
+const isTipiLabels = Object.keys(isTipiData);
+const isTipiValues = Object.values(isTipiData);
+
+if (isTipiLabels.length > 0) {
+    const isTipiCtx = document.getElementById('isTipiChart').getContext('2d');
+    new Chart(isTipiCtx, {
+        type: 'doughnut',
+        data: {
+            labels: isTipiLabels,
+            datasets: [{
+                data: isTipiValues,
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple,
+                    colors.pink,
+                    colors.indigo,
+                    colors.info
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                }
+            }
+        }
+    });
+}
+
+// Teslimat Durum Dağılımı
+const teslimatDurumData = {{ teslimat_durum|tojson }};
+const teslimatLabels = Object.keys(teslimatDurumData);
+const teslimatValues = Object.values(teslimatDurumData);
+
+if (teslimatLabels.length > 0) {
+    const teslimatCtx = document.getElementById('teslimatDurumChart').getContext('2d');
+    new Chart(teslimatCtx, {
+        type: 'bar',
+        data: {
+            labels: teslimatLabels,
+            datasets: [{
+                label: 'Teslimat Sayısı',
+                data: teslimatValues,
+                backgroundColor: colors.primary,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Günlük İş Adedi
+const gunlukIsData = {{ gunluk_is_adedi|tojson }};
+const gunlukLabels = Object.keys(gunlukIsData);
+const gunlukValues = Object.values(gunlukIsData);
+
+if (gunlukLabels.length > 0) {
+    const gunlukCtx = document.getElementById('gunlukIsChart').getContext('2d');
+    new Chart(gunlukCtx, {
+        type: 'line',
+        data: {
+            labels: gunlukLabels,
+            datasets: [{
+                label: 'İş Adedi',
+                data: gunlukValues,
+                borderColor: colors.success,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: colors.success
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Kişi Başı İş Sayısı
+const kisiBasiData = {{ kisi_basi_is|tojson }};
+const kisiBasiLabels = kisiBasiData.map(item => item[0]);
+const kisiBasiValues = kisiBasiData.map(item => item[1]);
+
+if (kisiBasiLabels.length > 0) {
+    const kisiBasiCtx = document.getElementById('kisiBasiChart').getContext('2d');
+    new Chart(kisiBasiCtx, {
+        type: 'bar',
+        data: {
+            labels: kisiBasiLabels,
+            datasets: [{
+                label: 'İş Sayısı',
+                data: kisiBasiValues,
+                backgroundColor: [
+                    colors.primary,
+                    colors.success,
+                    colors.warning,
+                    colors.danger,
+                    colors.purple
+                ],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}
+
