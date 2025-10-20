@@ -6,31 +6,8 @@ Müşteri bazlı detaylı raporlar oluşturur
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
-from docx.oxml import OxmlElement
 from datetime import datetime, timedelta
 from collections import Counter
-
-
-def set_cell_border(cell, **kwargs):
-    """
-    Tablo hücresine border ekler
-    """
-    tc = cell._tc
-    tcPr = tc.get_or_add_tcPr()
-    
-    # borders elementi oluştur
-    tcBorders = OxmlElement('w:tcBorders')
-    for edge in ('top', 'left', 'bottom', 'right'):
-        if edge in kwargs:
-            edge_element = OxmlElement(f'w:{edge}')
-            edge_element.set(qn('w:val'), 'single')
-            edge_element.set(qn('w:sz'), '4')
-            edge_element.set(qn('w:space'), '0')
-            edge_element.set(qn('w:color'), kwargs[edge])
-            tcBorders.append(edge_element)
-    
-    tcPr.append(tcBorders)
 
 
 def add_heading_custom(doc, text, level=1):
@@ -57,7 +34,11 @@ def generate_musteri_raporu(db, musteri, start_date=None, end_date=None):
     Returns:
         Document: Word dokümanı
     """
-    from app import IsGunlugu, Teslimat, SosyalMedya, Revizyon
+    try:
+        from app import IsGunlugu, Teslimat, SosyalMedya, Revizyon
+    except ImportError:
+        # Alternatif import yolu
+        from ...app import IsGunlugu, Teslimat, SosyalMedya, Revizyon
     
     # Tarih aralığı belirleme
     if not end_date:

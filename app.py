@@ -623,50 +623,68 @@ def arama_sil(arama_id):
 # Müşteri raporu Word indirme
 @app.route('/musteri/<int:musteri_id>/rapor')
 def musteri_rapor_indir(musteri_id):
-    from src.utils.report_generator import generate_musteri_raporu
-    from datetime import datetime, timedelta
-    from flask import send_file
-    import os
-    
-    musteri = Musteri.query.get_or_404(musteri_id)
-    
-    # Filtre parametresi
-    filtre = request.args.get('filtre', 'ay')
-    today = datetime.now().date()
-    
-    # Tarih aralığını belirle
-    if filtre == 'ay':
-        start_date = datetime(today.year, today.month, 1).date()
-        end_date = None
-    elif filtre == 'yil':
-        start_date = datetime(today.year, 1, 1).date()
-        end_date = None
-    elif filtre == '6ay':
-        start_date = today - timedelta(days=180)
-        end_date = None
-    else:  # 'tumu'
-        start_date = None
-        end_date = None
-    
     try:
+        from src.utils.report_generator import generate_musteri_raporu
+        from datetime import datetime, timedelta
+        from flask import send_file
+        import os
+        
+        musteri = Musteri.query.get_or_404(musteri_id)
+        
+        # Filtre parametresi
+        filtre = request.args.get('filtre', 'ay')
+        today = datetime.now().date()
+        
+        # Tarih aralığını belirle
+        if filtre == 'ay':
+            start_date = datetime(today.year, today.month, 1).date()
+            end_date = None
+        elif filtre == 'yil':
+            start_date = datetime(today.year, 1, 1).date()
+            end_date = None
+        elif filtre == '6ay':
+            start_date = today - timedelta(days=180)
+            end_date = None
+        else:  # 'tumu'
+            start_date = None
+            end_date = None
+        
+        # Upload klasörünün var olduğundan emin ol
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        
         # Rapor oluştur
         doc = generate_musteri_raporu(db, musteri, start_date, end_date)
         
-        # Dosya adı oluştur
+        # Dosya adı oluştur (Türkçe karakterleri temizle)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{musteri.ad.replace(' ', '_')}_{timestamp}_rapor.docx"
+        safe_name = musteri.ad.replace(' ', '_').replace('ş', 's').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c').replace('ı', 'i')
+        filename = f"{safe_name}_{timestamp}_rapor.docx"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         
         # Kaydet
         doc.save(filepath)
         
-        # İndir
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        )
+        # İndir (Flask versiyonuna göre uyumlu)
+        try:
+            # Flask 2.0+ için download_name
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            )
+        except TypeError:
+            # Flask 1.x için attachment_filename
+            return send_file(
+                filepath,
+                as_attachment=True,
+                attachment_filename=filename,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            )
+    except ImportError as e:
+        logger.error(f"Import hatası: {str(e)}", exc_info=True)
+        flash(f'Rapor modülü yüklenemedi. Lütfen python-docx kütüphanesinin kurulu olduğundan emin olun: {str(e)}', 'error')
+        return redirect(url_for('musteri_detay', musteri_id=musteri_id))
     except Exception as e:
         logger.error(f"Rapor oluşturma hatası: {str(e)}", exc_info=True)
         flash(f'Rapor oluşturulurken hata: {str(e)}', 'error')
