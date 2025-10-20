@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 
 # PythonAnywhere için user site-packages'ı ekle
 import site
-user_site_packages = os.path.expanduser('~/.local/lib/python3.13/site-packages')
+# Python 3.10 için (PythonAnywhere web app versiyonu)
+user_site_packages = os.path.expanduser('~/.local/lib/python3.10/site-packages')
 if user_site_packages not in sys.path and os.path.exists(user_site_packages):
     sys.path.insert(0, user_site_packages)
     site.addsitedir(user_site_packages)
