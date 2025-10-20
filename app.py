@@ -202,6 +202,7 @@ def musteriler():
 def musteri_detay(musteri_id):
     from src.utils.statistics import get_musteri_metrikleri
     from datetime import datetime, timedelta
+    from sqlalchemy import func
     
     musteri = Musteri.query.get_or_404(musteri_id)
     
@@ -230,26 +231,38 @@ def musteri_detay(musteri_id):
     teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
     sosyal_query = SosyalMedya.query.filter_by(musteri_id=musteri_id)
     revizyon_query = Revizyon.query.filter_by(musteri_id=musteri_id)
+    is_gunlugu_query = IsGunlugu.query.filter_by(musteri_id=musteri_id)
     
     if start_date:
         teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
         sosyal_query = sosyal_query.filter(SosyalMedya.tarih >= start_date)
         revizyon_query = revizyon_query.filter(Revizyon.tarih >= start_date)
+        is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih >= start_date)
     
     if end_date:
         teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
         sosyal_query = sosyal_query.filter(SosyalMedya.tarih <= end_date)
         revizyon_query = revizyon_query.filter(Revizyon.tarih <= end_date)
+        is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih <= end_date)
     
-    teslimatlar = teslimatlar_query.all()
-    sosyal_medyalar = sosyal_query.all()
-    revizyonlar = revizyon_query.all()
+    teslimatlar = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).all()
+    sosyal_medyalar = sosyal_query.order_by(SosyalMedya.tarih.desc()).all()
+    revizyonlar = revizyon_query.order_by(Revizyon.tarih.desc()).all()
+    isler = is_gunlugu_query.order_by(IsGunlugu.tarih.desc()).all()
+    
+    # Her teslimat için revizyon sayısını hesapla
+    revizyon_sayilari = {}
+    for teslimat in teslimatlar:
+        revizyon_sayisi = Revizyon.query.filter_by(teslimat_id=teslimat.id).count()
+        revizyon_sayilari[teslimat.id] = revizyon_sayisi
     
     return render_template('musteri_detay.html',
                          musteri=musteri,
                          teslimatlar=teslimatlar,
                          sosyal_medyalar=sosyal_medyalar,
                          revizyonlar=revizyonlar,
+                         isler=isler,
+                         revizyon_sayilari=revizyon_sayilari,
                          metrikler=metrikler,
                          filtre=filtre)
 

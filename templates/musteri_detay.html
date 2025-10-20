@@ -201,6 +201,56 @@
         </div>
     </div>
 
+    <!-- İş Günlüğü Tablosu -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-journal-text"></i> İş Günlüğü</h5>
+                    <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Yeni İş Ekle
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if isler %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Aktivite</th>
+                                    <th>Açıklama</th>
+                                    <th>Sorumlu</th>
+                                    <th>Süre</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for is in isler %}
+                                <tr>
+                                    <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
+                                    <td>{{ is.aciklama[:50] if is.aciklama else '-' }}...</td>
+                                    <td>{{ is.sorumlu_kisi or '-' }}</td>
+                                    <td>{{ (is.sure_dakika // 60)|int }}s {{ (is.sure_dakika % 60)|int }}dk</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" onclick="revizyonModalAc({{ is.id }}, '{{ is.aciklama[:30] if is.aciklama else 'İş' }}')">
+                                            <i class="bi bi-arrow-repeat"></i> Revize Geldi
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Henüz iş günlüğü kaydı bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Teslimatlar Tablosu -->
     <div class="row mb-4">
         <div class="col">
@@ -223,6 +273,8 @@
                                     <th>Sorumlu</th>
                                     <th>Teslim Tarihi</th>
                                     <th>Durum</th>
+                                    <th>Revizyonlar</th>
+                                    <th>İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -241,6 +293,21 @@
                                             {% else %}bg-secondary{% endif %}">
                                             {{ teslimat.durum or 'Bekliyor' }}
                                         </span>
+                                    </td>
+                                    <td>
+                                        {% if revizyon_sayilari[teslimat.id] > 0 %}
+                                        <span class="badge bg-danger">{{ revizyon_sayilari[teslimat.id] }} Revizyon</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" onclick="teslimatRevizyonAc({{ teslimat.id }}, '{{ teslimat.baslik }}')">
+                                            <i class="bi bi-arrow-repeat"></i> Revizyon
+                                        </button>
+                                        <button class="btn btn-sm btn-info" onclick="sosyalMedyaEkle({{ teslimat.id }}, '{{ teslimat.baslik }}')">
+                                            <i class="bi bi-share"></i> Sosyal Medya
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -369,11 +436,101 @@
 </div>
 {% endblock %}
 
+<!-- Revizyon Modal -->
+<div class="modal fade" id="revizyonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Revizyon Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="revizyonForm" method="POST" action="{{ url_for('revizyon_ekle') }}">
+                    <input type="hidden" name="musteri_id" value="{{ musteri.id }}">
+                    <input type="hidden" id="revizyonTeslimatId" name="teslimat_id">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">İş/Teslimat</label>
+                        <input type="text" id="revizyonIsAdi" class="form-control" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="revizeTarihi" class="form-label">Tarih *</label>
+                        <input type="date" class="form-control" id="revizeTarihi" name="tarih" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="revizeTalepEden" class="form-label">Revize Talep Eden *</label>
+                        <input type="text" class="form-control" id="revizeTalepEden" name="revize_talep_eden" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="revizeKonusu" class="form-label">Revize Konusu *</label>
+                        <textarea class="form-control" id="revizeKonusu" name="revize_konusu" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="revizyonKaydet()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
 {% block extra_js %}
 <script>
+let revizyonModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    revizyonModal = new bootstrap.Modal(document.getElementById('revizyonModal'));
+    
+    // Bugünün tarihini ayarla
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('revizeTarihi').value = today;
+});
+
 function filtreDegistir() {
     const filtre = document.getElementById('donemFiltre').value;
     window.location.href = `{{ url_for('musteri_detay', musteri_id=musteri.id) }}?filtre=${filtre}`;
+}
+
+// İş günlüğünden revizyon ekle
+function revizyonModalAc(isId, isAdi) {
+    document.getElementById('revizyonTeslimatId').value = '';
+    document.getElementById('revizyonIsAdi').value = 'İş Günlüğü: ' + isAdi;
+    document.getElementById('revizeTalepEden').value = 'Müşteri';
+    document.getElementById('revizeKonusu').value = '';
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('revizeTarihi').value = today;
+    
+    revizyonModal.show();
+}
+
+// Teslimat için revizyon ekle
+function teslimatRevizyonAc(teslimatId, teslimatAdi) {
+    document.getElementById('revizyonTeslimatId').value = teslimatId;
+    document.getElementById('revizyonIsAdi').value = 'Teslimat: ' + teslimatAdi;
+    document.getElementById('revizeTalepEden').value = 'Müşteri';
+    document.getElementById('revizeKonusu').value = '';
+    
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('revizeTarihi').value = today;
+    
+    revizyonModal.show();
+}
+
+// Teslimat için sosyal medya ekle
+function sosyalMedyaEkle(teslimatId, teslimatAdi) {
+    window.location.href = `{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}?teslimat=${teslimatId}&baslik=${encodeURIComponent(teslimatAdi)}`;
+}
+
+// Revizyon kaydet
+function revizyonKaydet() {
+    document.getElementById('revizyonForm').submit();
 }
 </script>
 {% endblock %}

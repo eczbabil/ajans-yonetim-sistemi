@@ -162,36 +162,102 @@ def generate_musteri_raporu(db, musteri, start_date=None, end_date=None):
     
     doc.add_page_break()
     
-    # ===== TESLİMAT DETAYLARI =====
-    add_heading_custom(doc, '📦 Teslimat Listesi', level=2)
+    # ===== KİŞİ BAŞI İŞ DAĞILIMI =====
+    add_heading_custom(doc, '👥 Kişi Başı İş Dağılımı (Top 5)', level=2)
+    
+    # Sorumlu kişilere göre iş sayısı ve süre
+    kisi_istatistik = {}
+    for is_item in isler:
+        if is_item.sorumlu_kisi:
+            if is_item.sorumlu_kisi not in kisi_istatistik:
+                kisi_istatistik[is_item.sorumlu_kisi] = {'is_sayisi': 0, 'toplam_dakika': 0}
+            kisi_istatistik[is_item.sorumlu_kisi]['is_sayisi'] += 1
+            kisi_istatistik[is_item.sorumlu_kisi]['toplam_dakika'] += is_item.sure_dakika
+    
+    # Top 5 kişi
+    top_kisiler = sorted(kisi_istatistik.items(), key=lambda x: x[1]['is_sayisi'], reverse=True)[:5]
+    
+    if top_kisiler:
+        kisi_table = doc.add_table(rows=len(top_kisiler) + 1, cols=3)
+        kisi_table.style = 'Light Grid Accent 1'
+        
+        # Başlıklar
+        kisi_table.rows[0].cells[0].text = 'İsim'
+        kisi_table.rows[0].cells[1].text = 'İş Sayısı'
+        kisi_table.rows[0].cells[2].text = 'Toplam Saat'
+        
+        for i, (kisi, stats) in enumerate(top_kisiler, 1):
+            kisi_table.rows[i].cells[0].text = kisi
+            kisi_table.rows[i].cells[1].text = str(stats['is_sayisi'])
+            kisi_table.rows[i].cells[2].text = f"{round(stats['toplam_dakika'] / 60, 1)} saat"
+    else:
+        doc.add_paragraph("Kişi bazlı iş verisi bulunmuyor.")
+    
+    doc.add_paragraph()
+    
+    # ===== TESLİMAT REVİZE & ONAY SÜRECİ =====
+    add_heading_custom(doc, '📦 Teslimat Revize & Onay Süreci', level=2)
     
     if teslimatlar:
-        for teslimat in teslimatlar:
-            doc.add_paragraph(
-                f"{teslimat.teslim_tarihi.strftime('%d.%m.%Y')} - "
-                f"{teslimat.sorumlu_kisi or 'Belirsiz'} - "
-                f"{teslimat.baslik} ({teslimat.durum})",
-                style='List Bullet'
-            )
+        # Tablo oluştur
+        teslimat_table = doc.add_table(rows=len(teslimatlar) + 1, cols=6)
+        teslimat_table.style = 'Light Grid Accent 1'
+        
+        # Başlıklar
+        teslimat_table.rows[0].cells[0].text = 'Dosya Adı'
+        teslimat_table.rows[0].cells[1].text = 'Gönderim Tarihi'
+        teslimat_table.rows[0].cells[2].text = 'Gönderen'
+        teslimat_table.rows[0].cells[3].text = 'Revize Durumu'
+        teslimat_table.rows[0].cells[4].text = 'Onay'
+        teslimat_table.rows[0].cells[5].text = 'Yayın/Paylaşım'
+        
+        for i, teslimat in enumerate(teslimatlar, 1):
+            # Revizyon sayısını hesapla
+            teslimat_revizyonlari = [r for r in revizyonlar if r.teslimat_id == teslimat.id]
+            revize_durumu = f"{len(teslimat_revizyonlari)} Revizyon" if teslimat_revizyonlari else "Revize yok"
+            
+            # Yayın bilgisi - sosyal medyadan kontrol
+            yayin_bilgisi = "-"
+            for sosyal in sosyal_medyalar:
+                if teslimat.baslik and teslimat.baslik.lower() in (sosyal.icerik_basligi or '').lower():
+                    if sosyal.durum == 'Yayınlandı':
+                        yayin_bilgisi = f"{sosyal.platform}'da yayınlandı"
+                        break
+            
+            teslimat_table.rows[i].cells[0].text = teslimat.baslik or 'Başlıksız'
+            teslimat_table.rows[i].cells[1].text = teslimat.teslim_tarihi.strftime('%d.%m.%Y %H:%M') if teslimat.teslim_tarihi else '-'
+            teslimat_table.rows[i].cells[2].text = teslimat.sorumlu_kisi or 'Belirsiz'
+            teslimat_table.rows[i].cells[3].text = revize_durumu
+            teslimat_table.rows[i].cells[4].text = teslimat.durum or 'Bekliyor'
+            teslimat_table.rows[i].cells[5].text = yayin_bilgisi
     else:
         doc.add_paragraph("Bu dönemde teslimat bulunmuyor.")
     
     doc.add_paragraph()
     
-    # ===== REVİZYON DETAYLARI =====
-    add_heading_custom(doc, '🔄 Revizyon Detayları', level=2)
+    # ===== REVİZYON DETAYLARI TABLOSU =====
+    add_heading_custom(doc, '🔄 Revizyon Durumları', level=2)
     
     if revizyonlar:
-        for revizyon in revizyonlar:
+        # Tablo oluştur
+        revizyon_table = doc.add_table(rows=len(revizyonlar) + 1, cols=4)
+        revizyon_table.style = 'Light Grid Accent 1'
+        
+        # Başlıklar
+        revizyon_table.rows[0].cells[0].text = 'Tarih'
+        revizyon_table.rows[0].cells[1].text = 'Dosya/Tasarım'
+        revizyon_table.rows[0].cells[2].text = 'Revize Nedeni'
+        revizyon_table.rows[0].cells[3].text = 'Durum'
+        
+        for i, revizyon in enumerate(revizyonlar, 1):
             # Teslimat bilgisini bul
             teslimat = next((t for t in teslimatlar if t.id == revizyon.teslimat_id), None)
             teslimat_adi = teslimat.baslik if teslimat else f"Teslimat #{revizyon.teslimat_id}"
             
-            doc.add_paragraph(
-                f"{revizyon.tarih.strftime('%d.%m.%Y')} - {teslimat_adi} - "
-                f"{revizyon.revize_talep_eden}: {revizyon.revize_konusu[:50]}...",
-                style='List Bullet'
-            )
+            revizyon_table.rows[i].cells[0].text = revizyon.tarih.strftime('%d.%m.%Y')
+            revizyon_table.rows[i].cells[1].text = teslimat_adi
+            revizyon_table.rows[i].cells[2].text = revizyon.revize_konusu[:50] if revizyon.revize_konusu else '-'
+            revizyon_table.rows[i].cells[3].text = revizyon.durum or 'Bekliyor'
     else:
         doc.add_paragraph("Bu dönemde revizyon bulunmuyor.")
     
@@ -227,35 +293,140 @@ def generate_musteri_raporu(db, musteri, start_date=None, end_date=None):
     aktivite_sayaci = Counter(aktivite_turleri)
     
     if aktivite_sayaci:
-        for aktivite, sayi in aktivite_sayaci.most_common():
-            doc.add_paragraph(f"{aktivite}: {sayi} iş", style='List Bullet')
+        # Tablo formatında göster
+        is_tipi_table = doc.add_table(rows=len(aktivite_sayaci) + 1, cols=3)
+        is_tipi_table.style = 'Light Grid Accent 1'
+        
+        # Başlıklar
+        is_tipi_table.rows[0].cells[0].text = 'Aktivite Türü'
+        is_tipi_table.rows[0].cells[1].text = 'İş Sayısı'
+        is_tipi_table.rows[0].cells[2].text = 'Toplam Saat'
+        
+        # Aktivite türüne göre süre hesapla
+        for i, (aktivite, sayi) in enumerate(aktivite_sayaci.most_common(), 1):
+            toplam_dakika_aktivite = sum([is_item.sure_dakika for is_item in isler if is_item.aktivite_turu == aktivite])
+            is_tipi_table.rows[i].cells[0].text = aktivite
+            is_tipi_table.rows[i].cells[1].text = str(sayi)
+            is_tipi_table.rows[i].cells[2].text = f"{round(toplam_dakika_aktivite / 60, 1)} saat"
     else:
         doc.add_paragraph("İş tipi verisi bulunmuyor.")
     
     doc.add_paragraph()
     
-    # ===== SOSYAL MEDYA =====
-    if sosyal_medyalar:
-        add_heading_custom(doc, '📱 Sosyal Medya İçerikleri', level=2)
+    # ===== TESLİM TAKVİMİ =====
+    add_heading_custom(doc, '📅 Teslim Takvimi - Teslimat Çıktıları', level=2)
+    
+    if teslimatlar:
+        # Tarihe göre grupla
+        from itertools import groupby
+        teslimatlar_sorted = sorted(teslimatlar, key=lambda t: t.teslim_tarihi if t.teslim_tarihi else datetime(1900, 1, 1).date())
         
-        for sosyal in sosyal_medyalar:
-            doc.add_paragraph(
-                f"{sosyal.tarih.strftime('%d.%m.%Y')} - {sosyal.platform} - "
-                f"{sosyal.gonderi_turu} - {sosyal.icerik_basligi} ({sosyal.durum})",
-                style='List Bullet'
-            )
+        teslim_table = doc.add_table(rows=len(teslimatlar) + 1, cols=4)
+        teslim_table.style = 'Light Grid Accent 1'
+        
+        # Başlıklar
+        teslim_table.rows[0].cells[0].text = 'Teslim Tarihi'
+        teslim_table.rows[0].cells[1].text = 'Tür'
+        teslim_table.rows[0].cells[2].text = 'Dosyalar'
+        teslim_table.rows[0].cells[3].text = 'Durum'
+        
+        for i, teslimat in enumerate(teslimatlar_sorted, 1):
+            teslim_table.rows[i].cells[0].text = teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-'
+            teslim_table.rows[i].cells[1].text = teslimat.teslim_turu or teslimat.aktivite_turu or '-'
+            teslim_table.rows[i].cells[2].text = teslimat.baslik or '-'
+            teslim_table.rows[i].cells[3].text = teslimat.durum or 'Bekliyor'
+    else:
+        doc.add_paragraph("Teslimat verisi bulunmuyor.")
+    
+    doc.add_paragraph()
+    
+    # ===== KATEGORİ BAZLI İÇERİK LİSTESİ =====
+    add_heading_custom(doc, '🎨 Kategori Bazlı İçerik Listesi', level=2)
+    
+    # Teslimat türlerine göre grupla
+    kategori_grup = {}
+    for teslimat in teslimatlar:
+        kategori = teslimat.teslim_turu or teslimat.aktivite_turu or 'Diğer'
+        if kategori not in kategori_grup:
+            kategori_grup[kategori] = []
+        kategori_grup[kategori].append(teslimat)
+    
+    if kategori_grup:
+        for kategori, items in sorted(kategori_grup.items()):
+            doc.add_heading(f"{kategori} ({len(items)} adet)", level=3)
+            for teslimat in items[:5]:  # İlk 5'ini göster
+                doc.add_paragraph(
+                    f"• {teslimat.baslik} - {teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-'} - {teslimat.sorumlu_kisi or '-'}",
+                    style='List Bullet'
+                )
+            if len(items) > 5:
+                doc.add_paragraph(f"  ... ve {len(items) - 5} adet daha")
+    else:
+        doc.add_paragraph("Kategori verisi bulunmuyor.")
+    
+    doc.add_paragraph()
+    
+    # ===== YAYINLANAN İÇERİKLER =====
+    yayinlanan_icerikler = [s for s in sosyal_medyalar if s.durum == 'Yayınlandı']
+    
+    if yayinlanan_icerikler:
+        add_heading_custom(doc, '🌐 Yayınlanan Grafik İçerikler', level=2)
+        
+        # Tablo oluştur
+        yayin_table = doc.add_table(rows=len(yayinlanan_icerikler) + 1, cols=5)
+        yayin_table.style = 'Light Grid Accent 1'
+        
+        # Başlıklar
+        yayin_table.rows[0].cells[0].text = 'Tarih'
+        yayin_table.rows[0].cells[1].text = 'İçerik'
+        yayin_table.rows[0].cells[2].text = 'Platform'
+        yayin_table.rows[0].cells[3].text = 'Görüntülenme'
+        yayin_table.rows[0].cells[4].text = 'Beğeni'
+        
+        for i, sosyal in enumerate(yayinlanan_icerikler, 1):
+            yayin_table.rows[i].cells[0].text = sosyal.tarih.strftime('%d.%m.%Y')
+            yayin_table.rows[i].cells[1].text = f"{sosyal.icerik_basligi} ({sosyal.gonderi_turu})"
+            yayin_table.rows[i].cells[2].text = sosyal.platform
+            yayin_table.rows[i].cells[3].text = str(sosyal.goruntulenme or 0)
+            yayin_table.rows[i].cells[4].text = str(sosyal.begeni or 0)
+        
+        doc.add_paragraph()
     
     # ===== SONUÇ =====
     doc.add_page_break()
-    add_heading_custom(doc, '✅ Sonuç', level=2)
+    add_heading_custom(doc, '✅ Sonuç ve Özet', level=2)
     
     sonuc = doc.add_paragraph()
-    sonuc.add_run(f"Ajans, {(end_date - start_date).days} gün içinde {musteri.ad} için:\n").bold = True
-    sonuc.add_run(f"• {len(teslimatlar)} teslimat üretmiş\n")
-    sonuc.add_run(f"• Bunların {len(revizyonlar)}'i revize edilmiş\n")
+    sonuc.add_run(f"Ajans, {(end_date - start_date).days} gün içinde {musteri.ad} için:\n\n").bold = True
+    
+    # Teslimat özeti
+    sonuc.add_run(f"• {len(teslimatlar)} teslimat üretmiş")
+    if tasarim_sayisi > 0 or video_sayisi > 0:
+        sonuc.add_run(f" ({tasarim_sayisi} tasarım + {video_sayisi} video)")
+    sonuc.add_run("\n")
+    
+    # Revizyon özeti
+    sonuc.add_run(f"• Bunların {len(revizyonlar)}'i revize edilmiş")
+    if tasarim_revize > 0 or video_revize > 0:
+        sonuc.add_run(f" ({tasarim_revize} tasarım + {video_revize} video)")
+    sonuc.add_run("\n")
+    
+    # Onay ve yayın
     sonuc.add_run(f"• {onaylanan} tanesi onaylanmış\n")
-    sonuc.add_run(f"• {yayinlanan} tanesi yayına gitmiştir\n")
+    sonuc.add_run(f"• {len(yayinlanan_icerikler)} tanesi dijital yayına gitmiştir\n")
+    
+    # Çalışma saati
     sonuc.add_run(f"• Toplam {toplam_saat} saat hizmet verilmiştir\n")
+    sonuc.add_run(f"• {benzersiz_gunler} iş günü boyunca çalışılmıştır\n")
+    
+    # Ekip bilgisi
+    if ekip_buyuklugu > 0:
+        sonuc.add_run(f"• {ekip_buyuklugu} kişilik ekip çalışmıştır\n")
+    
+    # Aktivite yoğunluğu
+    if aktivite_sayaci:
+        en_yogun_aktivite = aktivite_sayaci.most_common(1)[0]
+        sonuc.add_run(f"\nAktivite yoğunluğu: {en_yogun_aktivite[0]} ({en_yogun_aktivite[1]} iş)")
     
     return doc
 
