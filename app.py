@@ -3,18 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
 import pandas as pd
 import os
-import sys
 from werkzeug.utils import secure_filename
 from logger_config import setup_logger
 from dotenv import load_dotenv
-
-# PythonAnywhere için user site-packages'ı ekle
-import site
-# Python 3.10 için (PythonAnywhere web app versiyonu)
-user_site_packages = os.path.expanduser('~/.local/lib/python3.10/site-packages')
-if user_site_packages not in sys.path and os.path.exists(user_site_packages):
-    sys.path.insert(0, user_site_packages)
-    site.addsitedir(user_site_packages)
 
 # Environment variables yükle
 load_dotenv()
