@@ -1,0 +1,2 @@
+cd /home/oguzhandiscioglu/ajans-yonetim-sistemi
+git pull origin main
