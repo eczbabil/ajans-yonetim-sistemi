@@ -598,10 +598,10 @@ def is_onay(is_id):
         is_gunlugu = IsGunlugu.query.get_or_404(is_id)
         is_gunlugu.durum = 'Onaylandı'
         
-        # İlgili revizyonları tamamlandı yap
-        revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
-        for rev in revizyonlar:
-            rev.durum = 'Tamamlandı'
+        # Sadece SON revizyonu "Onaylandı" yap
+        son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi.desc()).first()
+        if son_revizyon:
+            son_revizyon.durum = 'Onaylandı'
         
         db.session.commit()
         flash(f'{is_gunlugu.is_kodu} onaylandı!', 'success')
@@ -619,10 +619,10 @@ def is_red(is_id):
         is_gunlugu = IsGunlugu.query.get_or_404(is_id)
         is_gunlugu.durum = 'Reddedildi'
         
-        # İlgili revizyonları reddedildi yap
-        revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
-        for rev in revizyonlar:
-            rev.durum = 'Reddedildi'
+        # Sadece SON revizyonu "Reddedildi" yap
+        son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi.desc()).first()
+        if son_revizyon:
+            son_revizyon.durum = 'Reddedildi'
         
         db.session.commit()
         flash(f'{is_gunlugu.is_kodu} reddedildi!', 'danger')
@@ -639,6 +639,12 @@ def is_tekrar_revize(is_id):
     try:
         is_gunlugu = IsGunlugu.query.get_or_404(is_id)
         is_gunlugu.durum = 'Revizede'
+        
+        # SON revizyonun durumunu "Tekrar Revizeye Gitti" yap
+        son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi.desc()).first()
+        if son_revizyon:
+            son_revizyon.durum = 'Tekrar Revizeye Gitti'
+        
         db.session.commit()
         
         # Yeni revizyon numarasını JSON olarak döndür (modal için)

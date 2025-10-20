@@ -461,8 +461,9 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>Revizyon</th>
+                                    <th>İş Kodu</th>
                                     <th>Tarih</th>
-                                    <th>Teslimat ID</th>
                                     <th>Talep Eden</th>
                                     <th>Konu</th>
                                     <th>Durum</th>
@@ -471,15 +472,28 @@
                             <tbody>
                                 {% for revizyon in revizyonlar %}
                                 <tr>
+                                    <td><strong>{{ revizyon.baslik or 'Revizyon 1' }}</strong></td>
+                                    <td>
+                                        {% if revizyon.is_gunlugu_id %}
+                                            {% set is_gunlugu = namespace(is_kodu='') %}
+                                            {% for is in isler %}
+                                                {% if is.id == revizyon.is_gunlugu_id %}
+                                                    <span class="badge bg-primary">{{ is.is_kodu }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
-                                    <td>{{ revizyon.teslimat_id }}</td>
                                     <td>{{ revizyon.revize_talep_eden }}</td>
-                                    <td>{{ revizyon.revize_konusu[:50] }}...</td>
+                                    <td>{{ revizyon.revize_konusu[:50] if revizyon.revize_konusu else '-' }}...</td>
                                     <td>
                                         <span class="badge 
-                                            {% if revizyon.durum == 'Tamamlandı' %}bg-success
-                                            {% elif revizyon.durum == 'Onaylandı' %}bg-info
-                                            {% else %}bg-warning{% endif %}">
+                                            {% if revizyon.durum == 'Onaylandı' %}bg-success
+                                            {% elif revizyon.durum == 'Tekrar Revizeye Gitti' %}bg-warning
+                                            {% elif revizyon.durum == 'Reddedildi' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
                                             {{ revizyon.durum }}
                                         </span>
                                     </td>
