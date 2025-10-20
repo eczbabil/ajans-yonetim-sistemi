@@ -57,7 +57,6 @@ class IsGunlugu(db.Model):
     is_kodu = db.Column(db.String(30), unique=True)  # MST001-IS001, MST001-IS002
     tarih = db.Column(db.Date, nullable=False)
     musteri_id = db.Column(db.Integer, db.ForeignKey('musteri.id'))
-    teslimat_id = db.Column(db.Integer, db.ForeignKey('teslimat.id'), nullable=True)  # Teslimat ile ilişki
     proje = db.Column(db.String(100))
     aktivite_turu = db.Column(db.String(50))
     aciklama = db.Column(db.Text)
@@ -65,6 +64,7 @@ class IsGunlugu(db.Model):
     sure_dakika = db.Column(db.Integer)
     etiketler = db.Column(db.String(200))
     durum = db.Column(db.String(20), default='Bekliyor')  # Bekliyor, Revizede, Onayda, Onaylandı, Reddedildi
+    revizyon_sayisi = db.Column(db.Integer, default=0)  # Kaç revizyon yapıldı
 
 class Teslimat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -98,7 +98,9 @@ class Revizyon(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tarih = db.Column(db.Date, nullable=False)
     musteri_id = db.Column(db.Integer, db.ForeignKey('musteri.id'))
-    teslimat_id = db.Column(db.Integer, db.ForeignKey('teslimat.id'))
+    is_gunlugu_id = db.Column(db.Integer, db.ForeignKey('is_gunlugu.id'), nullable=True)  # İş ile ilişki
+    revizyon_numarasi = db.Column(db.Integer, default=1)  # Revizyon 1, Revizyon 2, etc.
+    baslik = db.Column(db.String(100))  # "Revizyon 1", "Revizyon 2", etc.
     revize_talep_eden = db.Column(db.String(100))
     revize_konusu = db.Column(db.Text)
     durum = db.Column(db.String(20), default='Bekliyor')
@@ -589,6 +591,69 @@ def is_onaya_gonder(is_id):
     
     return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
 
+@app.route('/is_onay/<int:is_id>', methods=['POST'])
+def is_onay(is_id):
+    """İşi onayla"""
+    try:
+        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+        is_gunlugu.durum = 'Onaylandı'
+        
+        # İlgili revizyonları tamamlandı yap
+        revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
+        for rev in revizyonlar:
+            rev.durum = 'Tamamlandı'
+        
+        db.session.commit()
+        flash(f'{is_gunlugu.is_kodu} onaylandı!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"İş onay hatası: {str(e)}", exc_info=True)
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
+
+@app.route('/is_red/<int:is_id>', methods=['POST'])
+def is_red(is_id):
+    """İşi reddet"""
+    try:
+        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+        is_gunlugu.durum = 'Reddedildi'
+        
+        # İlgili revizyonları reddedildi yap
+        revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
+        for rev in revizyonlar:
+            rev.durum = 'Reddedildi'
+        
+        db.session.commit()
+        flash(f'{is_gunlugu.is_kodu} reddedildi!', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"İş red hatası: {str(e)}", exc_info=True)
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
+
+@app.route('/is_tekrar_revize/<int:is_id>', methods=['POST'])
+def is_tekrar_revize(is_id):
+    """İşi tekrar revizeye gönder"""
+    try:
+        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+        is_gunlugu.durum = 'Revizede'
+        db.session.commit()
+        
+        # Yeni revizyon numarasını JSON olarak döndür (modal için)
+        return jsonify({
+            'success': True,
+            'is_id': is_id,
+            'is_kodu': is_gunlugu.is_kodu,
+            'revizyon_numarasi': (is_gunlugu.revizyon_sayisi or 0) + 1,
+            'message': f'{is_gunlugu.is_kodu} tekrar revizeye gönderildi!'
+        })
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"İş tekrar revize hatası: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Revizyon ekleme
 @app.route('/revizyon_ekle', methods=['GET', 'POST'])
 @app.route('/revizyon_ekle/<int:musteri_id>', methods=['GET', 'POST'])
@@ -598,22 +663,41 @@ def revizyon_ekle(musteri_id=None):
             logger.info(f"Revizyon ekleme işlemi başladı - Musteri ID: {request.form.get('musteri_id')}")
             logger.info(f"Form verileri: {dict(request.form)}")
             
+            is_gunlugu_id = int(request.form['is_gunlugu_id']) if request.form.get('is_gunlugu_id') else None
+            
+            # Eğer iş günlüğü ID'si varsa, iş durumunu ve revizyon sayısını güncelle
+            revizyon_numarasi = 1
+            baslik = "Revizyon 1"
+            
+            if is_gunlugu_id:
+                is_gunlugu = IsGunlugu.query.get(is_gunlugu_id)
+                if is_gunlugu:
+                    # İş durumunu Revizede yap
+                    is_gunlugu.durum = 'Revizede'
+                    # Revizyon sayısını artır
+                    is_gunlugu.revizyon_sayisi = (is_gunlugu.revizyon_sayisi or 0) + 1
+                    revizyon_numarasi = is_gunlugu.revizyon_sayisi
+                    baslik = f"Revizyon {revizyon_numarasi}"
+                    db.session.commit()
+            
             revizyon = Revizyon(
                 tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
                 musteri_id=int(request.form['musteri_id']),
-                teslimat_id=int(request.form['teslimat_id']) if request.form.get('teslimat_id') else None,
+                is_gunlugu_id=is_gunlugu_id,
+                revizyon_numarasi=revizyon_numarasi,
+                baslik=baslik,
                 revize_talep_eden=request.form['revize_talep_eden'],
                 revize_konusu=request.form['revize_konusu'],
                 durum='Bekliyor'
             )
             
-            logger.info(f"Revizyon objesi oluşturuldu: Musteri={revizyon.musteri_id}, Teslimat={revizyon.teslimat_id}")
+            logger.info(f"Revizyon objesi oluşturuldu: Musteri={revizyon.musteri_id}, Is={revizyon.is_gunlugu_id}, Baslik={baslik}")
             
             db.session.add(revizyon)
             db.session.commit()
             
             logger.info(f"Revizyon başarıyla eklendi - ID: {revizyon.id}")
-            flash('Revizyon başarıyla eklendi!')
+            flash(f'{baslik} başarıyla eklendi!')
             
             if musteri_id:
                 return redirect(url_for('musteri_detay', musteri_id=musteri_id))
@@ -625,10 +709,10 @@ def revizyon_ekle(musteri_id=None):
             flash(f'Hata: {str(e)}', 'error')
 
     musteriler = Musteri.query.all()
-    teslimatlar = Teslimat.query.all()
+    isler = IsGunlugu.query.all()
     return render_template('revizyon_ekle.html',
                          musteriler=musteriler,
-                         teslimatlar=teslimatlar,
+                         isler=isler,
                          secili_musteri_id=musteri_id)
 
 # Excel import/export

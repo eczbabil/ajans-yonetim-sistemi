@@ -231,21 +231,15 @@
                                     <td>{{ is.sorumlu_kisi or '-' }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('is_onay', is_id=is.id) }}" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                <i class="bi bi-check-circle"></i> Onay
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('is_tekrar_revize', is_id=is.id) }}" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-warning">
-                                                <i class="bi bi-arrow-repeat"></i> Tekrar Revize
-                                            </button>
-                                        </form>
-                                        <form method="POST" action="{{ url_for('is_red', is_id=is.id) }}" style="display:inline;" onsubmit="return confirm('Bu işi reddetmek istediğinizden emin misiniz?');">
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-x-circle"></i> Red
-                                            </button>
-                                        </form>
+                                        <button class="btn btn-sm btn-success" onclick="isOnay({{ is.id }}, '{{ is.is_kodu }}')">
+                                            <i class="bi bi-check-circle"></i> Onay
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" onclick="tekrarRevizeAc({{ is.id }}, '{{ is.is_kodu }}', '{{ is.aciklama[:50] if is.aciklama else '' }}')">
+                                            <i class="bi bi-arrow-repeat"></i> Tekrar Revize
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="isRed({{ is.id }}, '{{ is.is_kodu }}')">
+                                            <i class="bi bi-x-circle"></i> Red
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -305,16 +299,14 @@
                                     </td>
                                     <td>
                                         {% if is.durum in ['Bekliyor', 'Revizede'] %}
-                                        <button class="btn btn-sm btn-warning" onclick="revizyonModalAc({{ is.id }}, '{{ is.is_kodu or is.aciklama[:20] }}', {{ is.id }})">
+                                        <button class="btn btn-sm btn-warning" onclick="revizyonModalAc({{ is.id }}, '{{ is.is_kodu }}', '{{ is.aciklama[:50] if is.aciklama else '' }}', {{ is.revizyon_sayisi or 0 }})">
                                             <i class="bi bi-arrow-repeat"></i> Revize Geldi
                                         </button>
                                         {% endif %}
                                         {% if is.durum == 'Revizede' %}
-                                        <form method="POST" action="{{ url_for('is_onaya_gonder', is_id=is.id) }}" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-primary">
-                                                <i class="bi bi-send"></i> Onaya Gönder
-                                            </button>
-                                        </form>
+                                        <button class="btn btn-sm btn-primary" onclick="isOnayaGonder({{ is.id }})">
+                                            <i class="bi bi-send"></i> Onaya Gönder
+                                        </button>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -518,16 +510,21 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Revizyon Ekle</h5>
+                    <h5 class="modal-title" id="revizyonModalBaslik">Revizyon Ekle</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="revizyonForm" method="POST" action="{{ url_for('revizyon_ekle') }}">
                         <input type="hidden" name="musteri_id" value="{{ musteri.id }}">
-                        <input type="hidden" id="revizyonTeslimatId" name="teslimat_id">
+                        <input type="hidden" id="revizyonIsGunluguId" name="is_gunlugu_id">
                         
                         <div class="mb-3">
-                            <label class="form-label">İş/Teslimat</label>
+                            <label class="form-label">İş Kodu</label>
+                            <input type="text" id="revizyonIsKodu" class="form-control" readonly>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">İş Açıklaması</label>
                             <input type="text" id="revizyonIsAdi" class="form-control" readonly>
                         </div>
                         
@@ -542,8 +539,8 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="revizeKonusu" class="form-label">Revize Konusu *</label>
-                            <textarea class="form-control" id="revizeKonusu" name="revize_konusu" rows="3" required></textarea>
+                            <label for="revizeKonusu" class="form-label">Revize Konusu / Notlar *</label>
+                            <textarea class="form-control" id="revizeKonusu" name="revize_konusu" rows="4" placeholder="Revizyon detaylarını ve notlarınızı yazın..." required></textarea>
                         </div>
                     </form>
                 </div>
@@ -575,12 +572,13 @@ function filtreDegistir() {
 }
 
 // İş günlüğünden revizyon ekle
-let currentIsId = null;
-
-function revizyonModalAc(isId, isAdi, teslimatId = null) {
-    currentIsId = isId;  // İş ID'sini sakla
-    document.getElementById('revizyonTeslimatId').value = teslimatId || '';
-    document.getElementById('revizyonIsAdi').value = isAdi;
+function revizyonModalAc(isId, isKodu, isAciklama, revizyonSayisi) {
+    const yeniRevizyonNo = revizyonSayisi + 1;
+    
+    document.getElementById('revizyonIsGunluguId').value = isId;
+    document.getElementById('revizyonIsKodu').value = isKodu;
+    document.getElementById('revizyonIsAdi').value = isAciklama;
+    document.getElementById('revizyonModalBaslik').textContent = `Revizyon ${yeniRevizyonNo} Ekle`;
     document.getElementById('revizeTalepEden').value = 'Müşteri';
     document.getElementById('revizeKonusu').value = '';
     
@@ -590,42 +588,74 @@ function revizyonModalAc(isId, isAdi, teslimatId = null) {
     revizyonModal.show();
 }
 
-// Teslimat için revizyon ekle
-function teslimatRevizyonAc(teslimatId, teslimatAdi) {
-    document.getElementById('revizyonTeslimatId').value = teslimatId;
-    document.getElementById('revizyonIsAdi').value = 'Teslimat: ' + teslimatAdi;
-    document.getElementById('revizeTalepEden').value = 'Müşteri';
-    document.getElementById('revizeKonusu').value = '';
-    
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('revizeTarihi').value = today;
-    
-    revizyonModal.show();
+// Onayda bekleyenlerden tekrar revize
+function tekrarRevizeAc(isId, isKodu, isAciklama) {
+    // Önce iş durumunu güncelle
+    fetch(`/is_tekrar_revize/${isId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Revizyon modalını aç
+            document.getElementById('revizyonIsGunluguId').value = isId;
+            document.getElementById('revizyonIsKodu').value = isKodu;
+            document.getElementById('revizyonIsAdi').value = isAciklama;
+            document.getElementById('revizyonModalBaslik').textContent = `Revizyon ${data.revizyon_numarasi} Ekle`;
+            document.getElementById('revizeTalepEden').value = 'Müşteri';
+            document.getElementById('revizeKonusu').value = '';
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('revizeTarihi').value = today;
+            
+            revizyonModal.show();
+        } else {
+            alert('Hata: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Hata:', error);
+        alert('İşlem sırasında bir hata oluştu.');
+    });
 }
 
-// Teslimat için sosyal medya ekle
-function sosyalMedyaEkle(teslimatId, teslimatAdi) {
-    window.location.href = `{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}?teslimat=${teslimatId}&baslik=${encodeURIComponent(teslimatAdi)}`;
+// İş onaylama
+function isOnay(isId, isKodu) {
+    if (confirm(`${isKodu} kodlu işi onaylamak istediğinizden emin misiniz?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/is_onay/${isId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// İş red
+function isRed(isId, isKodu) {
+    if (confirm(`${isKodu} kodlu işi reddetmek istediğinizden emin misiniz?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/is_red/${isId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// İşi onaya gönder
+function isOnayaGonder(isId) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/is_onaya_gonder/${isId}`;
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // Revizyon kaydet
 function revizyonKaydet() {
-    const form = document.getElementById('revizyonForm');
-    
-    // Eğer iş ID'si varsa, işi revizede olarak işaretle
-    if (currentIsId) {
-        // Form submit'ten önce iş durumunu güncelle
-        fetch(`/is_tekrar_revize/${currentIsId}`, {
-            method: 'POST'
-        }).then(() => {
-            form.submit();
-        }).catch(error => {
-            console.error('Hata:', error);
-            form.submit();  // Hata olsa bile formu gönder
-        });
-    } else {
-        form.submit();
-    }
+    document.getElementById('revizyonForm').submit();
 }
 </script>
 {% endblock %}
