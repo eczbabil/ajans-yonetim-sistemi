@@ -201,6 +201,63 @@
         </div>
     </div>
 
+    <!-- Onayda Bekleyen İşler -->
+    {% if onayda_bekleyenler %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="bi bi-clock-history"></i> Onayda Bekleyen İşler ({{ onayda_bekleyenler|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>İş Kodu</th>
+                                    <th>Tarih</th>
+                                    <th>Açıklama</th>
+                                    <th>Sorumlu</th>
+                                    <th>Aktivite</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for is in onayda_bekleyenler %}
+                                <tr>
+                                    <td><strong>{{ is.is_kodu }}</strong></td>
+                                    <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ is.aciklama[:60] if is.aciklama else '-' }}...</td>
+                                    <td>{{ is.sorumlu_kisi or '-' }}</td>
+                                    <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('is_onay', is_id=is.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="bi bi-check-circle"></i> Onay
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('is_tekrar_revize', is_id=is.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-warning">
+                                                <i class="bi bi-arrow-repeat"></i> Tekrar Revize
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('is_red', is_id=is.id) }}" style="display:inline;" onsubmit="return confirm('Bu işi reddetmek istediğinizden emin misiniz?');">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-x-circle"></i> Red
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- İş Günlüğü Tablosu -->
     <div class="row mb-4">
         <div class="col">
@@ -217,26 +274,48 @@
                         <table class="table table-hover table-sm">
                             <thead>
                                 <tr>
+                                    <th>İş Kodu</th>
                                     <th>Tarih</th>
                                     <th>Aktivite</th>
                                     <th>Açıklama</th>
                                     <th>Sorumlu</th>
                                     <th>Süre</th>
+                                    <th>Durum</th>
                                     <th>İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for is in isler %}
                                 <tr>
+                                    <td><strong>{{ is.is_kodu or '-' }}</strong></td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>{{ is.aciklama[:50] if is.aciklama else '-' }}...</td>
                                     <td>{{ is.sorumlu_kisi or '-' }}</td>
                                     <td>{{ (is.sure_dakika // 60)|int }}s {{ (is.sure_dakika % 60)|int }}dk</td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning" onclick="revizyonModalAc({{ is.id }}, '{{ is.aciklama[:30] if is.aciklama else 'İş' }}')">
+                                        <span class="badge 
+                                            {% if is.durum == 'Onaylandı' %}bg-success
+                                            {% elif is.durum == 'Onayda' %}bg-info
+                                            {% elif is.durum == 'Revizede' %}bg-warning
+                                            {% elif is.durum == 'Reddedildi' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ is.durum or 'Bekliyor' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if is.durum in ['Bekliyor', 'Revizede'] %}
+                                        <button class="btn btn-sm btn-warning" onclick="revizyonModalAc({{ is.id }}, '{{ is.is_kodu or is.aciklama[:20] }}', {{ is.id }})">
                                             <i class="bi bi-arrow-repeat"></i> Revize Geldi
                                         </button>
+                                        {% endif %}
+                                        {% if is.durum == 'Revizede' %}
+                                        <form method="POST" action="{{ url_for('is_onaya_gonder', is_id=is.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-send"></i> Onaya Gönder
+                                            </button>
+                                        </form>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -496,9 +575,12 @@ function filtreDegistir() {
 }
 
 // İş günlüğünden revizyon ekle
-function revizyonModalAc(isId, isAdi) {
-    document.getElementById('revizyonTeslimatId').value = '';
-    document.getElementById('revizyonIsAdi').value = 'İş Günlüğü: ' + isAdi;
+let currentIsId = null;
+
+function revizyonModalAc(isId, isAdi, teslimatId = null) {
+    currentIsId = isId;  // İş ID'sini sakla
+    document.getElementById('revizyonTeslimatId').value = teslimatId || '';
+    document.getElementById('revizyonIsAdi').value = isAdi;
     document.getElementById('revizeTalepEden').value = 'Müşteri';
     document.getElementById('revizeKonusu').value = '';
     
@@ -528,7 +610,22 @@ function sosyalMedyaEkle(teslimatId, teslimatAdi) {
 
 // Revizyon kaydet
 function revizyonKaydet() {
-    document.getElementById('revizyonForm').submit();
+    const form = document.getElementById('revizyonForm');
+    
+    // Eğer iş ID'si varsa, işi revizede olarak işaretle
+    if (currentIsId) {
+        // Form submit'ten önce iş durumunu güncelle
+        fetch(`/is_tekrar_revize/${currentIsId}`, {
+            method: 'POST'
+        }).then(() => {
+            form.submit();
+        }).catch(error => {
+            console.error('Hata:', error);
+            form.submit();  // Hata olsa bile formu gönder
+        });
+    } else {
+        form.submit();
+    }
 }
 </script>
 {% endblock %}
