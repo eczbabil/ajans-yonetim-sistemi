@@ -1,334 +1,379 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ musteri.ad }} - Müşteri Detayları</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">🏢 Sisyphos Ajans</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('musteriler') }}">Müşteriler</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">🏠 Ana Sayfa</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container mt-4">
-        <!-- Müşteri Bilgileri -->
-        <div class="row mb-4">
-            <div class="col">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3>{{ musteri.ad }} - Müşteri Detayları</h3>
-                        <span class="badge bg-success fs-6">Aktif</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Müşteri Kodu:</strong> <span class="badge bg-primary">{{ musteri.musteri_kodu }}</span></p>
-                                <p><strong>Sektör:</strong> {{ musteri.sektor or '-' }}</p>
-                                <p><strong>Sözleşme Başlangıç:</strong> {{ musteri.sozlesme_baslangic.strftime('%d.%m.%Y') if musteri.sozlesme_baslangic else '-' }}</p>
-                                <p><strong>Aylık Ücret:</strong> {{ "{:,.0f}".format(musteri.aylik_ucret) if musteri.aylik_ucret else '-' }} TL</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>İlgili Kişi:</strong> {{ musteri.ilgili_kisi or '-' }}</p>
-                                <p><strong>Telefon:</strong> {{ musteri.telefon or '-' }}</p>
-                                <p><strong>E-posta:</strong> {{ musteri.email or '-' }}</p>
-                                <p><strong>Notlar:</strong> {{ musteri.notlar or '-' }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% block title %}{{ musteri.ad }} - Müşteri Detayları{% endblock %}
 
-        <!-- Hızlı İşlemler -->
-        <div class="row mb-4">
-            <div class="col">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Hızlı İşlemler</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <a href="{{ url_for('teslimat_ekle', musteri_id=musteri.id) }}" class="btn btn-success w-100 mb-2">
-                                    ➕ Teslimat Ekle
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="{{ url_for('revizyon_ekle', musteri_id=musteri.id) }}" class="btn btn-warning w-100 mb-2">
-                                    📝 Revizyon Ekle
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-info w-100 mb-2">
-                                    📱 Sosyal Medya Ekle
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-primary w-100 mb-2">
-                                    ⏰ İş Ekle
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Teslimatlar Tablosu -->
-        <div class="row mb-4">
-            <div class="col">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>Teslimatlar</h5>
-                        <a href="{{ url_for('teslimat_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">Yeni Teslimat</a>
-                    </div>
-                    <div class="card-body">
-                        {% if teslimatlar %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Teslimat ID</th>
-                                        <th>Aktivite Türü</th>
-                                        <th>Proje</th>
-                                        <th>Teslim Türü</th>
-                                        <th>Başlık</th>
-                                        <th>Sorumlu Kişi</th>
-                                        <th>Oluşturma Tarihi</th>
-                                        <th>Teslim Tarihi</th>
-                                        <th>Durum</th>
-                                        <th>Açıklama</th>
-                                        <th>İşlemler</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for teslimat in teslimatlar %}
-                                    <tr>
-                                        <td><strong>{{ teslimat.teslimat_kodu }}</strong></td>
-                                        <td>{{ teslimat.aktivite_turu or '-' }}</td>
-                                        <td>{{ teslimat.proje or '-' }}</td>
-                                        <td>{{ teslimat.teslim_turu or '-' }}</td>
-                                        <td>{{ teslimat.baslik or '-' }}</td>
-                                        <td>{{ teslimat.sorumlu_kisi or '-' }}</td>
-                                        <td>{{ teslimat.olusturma_tarihi.strftime('%d.%m.%Y') if teslimat.olusturma_tarihi else '-' }}</td>
-                                        <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
-                                        <td>
-                                            <span class="badge {% if teslimat.durum == 'Onaylandı' %}bg-success{% elif teslimat.durum == 'Bekliyor' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                                {{ teslimat.durum or 'Bekliyor' }}
-                                            </span>
-                                        </td>
-                                        <td>{{ teslimat.aciklama[:30] if teslimat.aciklama else '-' }}...</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-info" onclick="revizyonEkle({{ teslimat.id }})">Revizyon</button>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p class="text-center text-muted">Henüz teslimat verisi bulunmuyor.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sosyal Medya Tablosu -->
-        <div class="row mb-4">
-            <div class="col">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>Sosyal Medya Performansı</h5>
-                        <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">Yeni Gönderi</a>
-                    </div>
-                    <div class="card-body">
-                        {% if sosyal_medyalar %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Tarih</th>
-                                        <th>Platform</th>
-                                        <th>İçerik Başlığı</th>
-                                        <th>Gönderi Türü</th>
-                                        <th>Etkileşim</th>
-                                        <th>Görüntülenme</th>
-                                        <th>Beğeni</th>
-                                        <th>Yorum</th>
-                                        <th>Paylaşım</th>
-                                        <th>Durum</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for sosyal in sosyal_medyalar %}
-                                    <tr>
-                                        <td>{{ sosyal.tarih.strftime('%d.%m.%Y') }}</td>
-                                        <td>{{ sosyal.platform }}</td>
-                                        <td>{{ sosyal.icerik_basligi }}</td>
-                                        <td>{{ sosyal.gonderi_turu }}</td>
-                                        <td>{{ sosyal.etkilesim }}</td>
-                                        <td>{{ sosyal.goruntulenme }}</td>
-                                        <td>{{ sosyal.begeni }}</td>
-                                        <td>{{ sosyal.yorum }}</td>
-                                        <td>{{ sosyal.paylasim }}</td>
-                                        <td>
-                                            <span class="badge {% if sosyal.durum == 'Yayınlandı' %}bg-success{% else %}bg-secondary{% endif %}">
-                                                {{ sosyal.durum }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p class="text-center text-muted">Henüz sosyal medya verisi bulunmuyor.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Revizyonlar Tablosu -->
-        <div class="row mb-4">
-            <div class="col">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>Revizyonlar</h5>
-                        <a href="{{ url_for('revizyon_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">Yeni Revizyon</a>
-                    </div>
-                    <div class="card-body">
-                        {% if revizyonlar %}
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Tarih</th>
-                                        <th>Teslimat ID</th>
-                                        <th>Revize Talep Eden</th>
-                                        <th>Revize Konusu</th>
-                                        <th>Durum</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for revizyon in revizyonlar %}
-                                    <tr>
-                                        <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
-                                        <td>{{ revizyon.teslimat_id }}</td>
-                                        <td>{{ revizyon.revize_talep_eden }}</td>
-                                        <td>{{ revizyon.revize_konusu }}</td>
-                                        <td>
-                                            <span class="badge {% if revizyon.durum == 'Tamamlandı' %}bg-success{% elif revizyon.durum == 'Onaylandı' %}bg-info{% else %}bg-warning{% endif %}">
-                                                {{ revizyon.durum }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p class="text-center text-muted">Henüz revizyon verisi bulunmuyor.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Geri Dön Butonu -->
-        <div class="row">
-            <div class="col">
-                <a href="{{ url_for('musteriler') }}" class="btn btn-secondary">← Müşteri Listesine Dön</a>
-            </div>
-        </div>
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('musteriler') }}">Müşteriler</a></li>
+                <li class="breadcrumb-item active">{{ musteri.ad }}</li>
+            </ol>
+        </nav>
     </div>
+</div>
+{% endblock %}
 
-    <!-- Revizyon Modal -->
-    <div class="modal fade" id="revizyonModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Revizyon Ekle</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+{% block content %}
+<div class="container-fluid">
+    <!-- Müşteri Bilgileri Başlık -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold">
+                        <i class="bi bi-building"></i> {{ musteri.ad }}
+                        <span class="badge bg-success ms-2">Aktif</span>
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Müşteri Kodu: <strong>{{ musteri.musteri_kodu }}</strong> | 
+                        Sektör: {{ musteri.sektor or '-' }}
+                    </p>
                 </div>
-                <div class="modal-body">
-                    <form id="revizyonForm">
-                        <input type="hidden" id="teslimatId" name="teslimat_id">
-                        <div class="mb-3">
-                            <label for="revizeTarihi" class="form-label">Tarih</label>
-                            <input type="date" class="form-control" id="revizeTarihi" name="tarih" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="revizeTalepEden" class="form-label">Revize Talep Eden</label>
-                            <input type="text" class="form-control" id="revizeTalepEden" name="revize_talep_eden" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="revizeKonusu" class="form-label">Revize Konusu</label>
-                            <textarea class="form-control" id="revizeKonusu" name="revize_konusu" rows="3" required></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="button" class="btn btn-primary" onclick="revizyonKaydet()">Kaydet</button>
+                <div>
+                    <a href="{{ url_for('musteri_rapor_indir', musteri_id=musteri.id) }}?filtre={{ filtre }}" 
+                       class="btn btn-primary btn-lg">
+                        <i class="bi bi-file-earmark-word"></i> Word Rapor İndir
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function revizyonEkle(teslimatId) {
-            document.getElementById('teslimatId').value = teslimatId;
-            document.getElementById('revizeTalepEden').value = 'Müşteri';
-            
-            // Bugünün tarihini ayarla
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('revizeTarihi').value = today;
-            
-            new bootstrap.Modal(document.getElementById('revizyonModal')).show();
-        }
+    <!-- Filtre Seçici -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <label class="me-3 mb-0"><strong>Dönem Filtresi:</strong></label>
+                        <select id="donemFiltre" class="form-select form-select-sm" style="width: auto;" onchange="filtreDegistir()">
+                            <option value="ay" {% if filtre == 'ay' %}selected{% endif %}>Bu Ay</option>
+                            <option value="yil" {% if filtre == 'yil' %}selected{% endif %}>Bu Yıl</option>
+                            <option value="6ay" {% if filtre == '6ay' %}selected{% endif %}>Son 6 Ay</option>
+                            <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function revizyonKaydet() {
-            const formData = new FormData(document.getElementById('revizyonForm'));
-            formData.append('musteri_id', {{ musteri.id }});
+    <!-- KPI Metrik Kartları -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card primary">
+                <h4><i class="bi bi-clock-history"></i> Toplam Saat</h4>
+                <div class="value">{{ metrikler.toplam_saat }}</div>
+                <div class="subtitle">Çalışma saati</div>
+            </div>
+        </div>
 
-            fetch('/revizyon_ekle', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Başarılı olduğunda sayfayı yenile
-                    location.reload();
-                } else {
-                    throw new Error('Revizyon eklenirken hata oluştu');
-                }
-            })
-            .catch(error => {
-                console.error('Hata:', error);
-                alert('Bir hata oluştu: ' + error.message);
-            });
-        }
-    </script>
-</body>
-</html>
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card success">
+                <h4><i class="bi bi-check-circle"></i> Onaylanan</h4>
+                <div class="value">{{ metrikler.onaylanan_teslimat }}</div>
+                <div class="subtitle">Tamamlanan teslimatlar</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card warning">
+                <h4><i class="bi bi-hourglass-split"></i> Bekleyen</h4>
+                <div class="value">{{ metrikler.bekleyen_teslimat }}</div>
+                <div class="subtitle">Devam eden teslimatlar</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="kpi-card danger">
+                <h4><i class="bi bi-instagram"></i> Reels</h4>
+                <div class="value">{{ metrikler.reels_sayisi }}</div>
+                <div class="subtitle">Sosyal medya içeriği</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- İkincil Metrikler -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <h4><i class="bi bi-list-task"></i> Toplam İş</h4>
+                <div class="value">{{ metrikler.is_sayisi }}</div>
+                <div class="subtitle">İş günlüğü kaydı</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <h4><i class="bi bi-box-seam"></i> Teslimatlar</h4>
+                <div class="value">{{ metrikler.toplam_teslimat }}</div>
+                <div class="subtitle">Toplam teslimat</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card">
+                <h4><i class="bi bi-share"></i> Sosyal Medya</h4>
+                <div class="value">{{ metrikler.toplam_sosyal_medya }}</div>
+                <div class="subtitle">Toplam içerik</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı İşlemler -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle"></i> İş Ekle
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('teslimat_ekle', musteri_id=musteri.id) }}" class="btn btn-success w-100">
+                                <i class="bi bi-plus-circle"></i> Teslimat Ekle
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-info w-100">
+                                <i class="bi bi-plus-circle"></i> Sosyal Medya Ekle
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('revizyon_ekle', musteri_id=musteri.id) }}" class="btn btn-warning w-100">
+                                <i class="bi bi-plus-circle"></i> Revizyon Ekle
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Müşteri Bilgileri Detay -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-info-circle"></i> Müşteri Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">Sözleşme Başlangıç:</th>
+                            <td>{{ musteri.sozlesme_baslangic.strftime('%d.%m.%Y') if musteri.sozlesme_baslangic else '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Aylık Ücret:</th>
+                            <td>{{ "{:,.0f}".format(musteri.aylik_ucret) if musteri.aylik_ucret else '-' }} TL</td>
+                        </tr>
+                        <tr>
+                            <th>İlgili Kişi:</th>
+                            <td>{{ musteri.ilgil_kisi or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Telefon:</th>
+                            <td>{{ musteri.telefon or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>E-posta:</th>
+                            <td>{{ musteri.email or '-' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-journal-text"></i> Notlar</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ musteri.notlar or 'Not bulunmuyor.' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teslimatlar Tablosu -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-box-seam"></i> Teslimatlar</h5>
+                    <a href="{{ url_for('teslimat_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Yeni Teslimat
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if teslimatlar %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Teslimat Kodu</th>
+                                    <th>Başlık</th>
+                                    <th>Tür</th>
+                                    <th>Sorumlu</th>
+                                    <th>Teslim Tarihi</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for teslimat in teslimatlar %}
+                                <tr>
+                                    <td><strong>{{ teslimat.teslimat_kodu }}</strong></td>
+                                    <td>{{ teslimat.baslik or '-' }}</td>
+                                    <td>{{ teslimat.teslim_turu or '-' }}</td>
+                                    <td>{{ teslimat.sorumlu_kisi or '-' }}</td>
+                                    <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if teslimat.durum == 'Onaylandı' %}bg-success
+                                            {% elif teslimat.durum == 'Bekliyor' %}bg-warning
+                                            {% elif teslimat.durum == 'Devam Ediyor' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ teslimat.durum or 'Bekliyor' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Henüz teslimat verisi bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sosyal Medya Tablosu -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-instagram"></i> Sosyal Medya Performansı</h5>
+                    <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Yeni Gönderi
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if sosyal_medyalar %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Platform</th>
+                                    <th>İçerik</th>
+                                    <th>Tür</th>
+                                    <th>Görüntülenme</th>
+                                    <th>Beğeni</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sosyal in sosyal_medyalar %}
+                                <tr>
+                                    <td>{{ sosyal.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ sosyal.platform }}</td>
+                                    <td>{{ sosyal.icerik_basligi }}</td>
+                                    <td>{{ sosyal.gonderi_turu }}</td>
+                                    <td>{{ sosyal.goruntulenme }}</td>
+                                    <td>{{ sosyal.begeni }}</td>
+                                    <td>
+                                        <span class="badge {% if sosyal.durum == 'Yayınlandı' %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ sosyal.durum }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Henüz sosyal medya verisi bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revizyonlar Tablosu -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-arrow-repeat"></i> Revizyonlar</h5>
+                    <a href="{{ url_for('revizyon_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Yeni Revizyon
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if revizyonlar %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Teslimat ID</th>
+                                    <th>Talep Eden</th>
+                                    <th>Konu</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for revizyon in revizyonlar %}
+                                <tr>
+                                    <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ revizyon.teslimat_id }}</td>
+                                    <td>{{ revizyon.revize_talep_eden }}</td>
+                                    <td>{{ revizyon.revize_konusu[:50] }}...</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if revizyon.durum == 'Tamamlandı' %}bg-success
+                                            {% elif revizyon.durum == 'Onaylandı' %}bg-info
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ revizyon.durum }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Henüz revizyon verisi bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geri Dön Butonu -->
+    <div class="row">
+        <div class="col">
+            <a href="{{ url_for('musteriler') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Müşteri Listesine Dön
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtreDegistir() {
+    const filtre = document.getElementById('donemFiltre').value;
+    window.location.href = `{{ url_for('musteri_detay', musteri_id=musteri.id) }}?filtre=${filtre}`;
+}
+</script>
+{% endblock %}

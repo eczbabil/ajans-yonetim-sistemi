@@ -1,42 +1,22 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sosyal Medya Ekle - Sisyphos Ajans</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">🏢 Sisyphos Ajans</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('musteriler') }}">Müşteriler</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('is_gunlugu') }}">İş Günlüğü</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('teslimatlar') }}">Teslimatlar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('sosyal_medya') }}">Sosyal Medya</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">🏠 Ana Sayfa</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
+{% block title %}Sosyal Medya Ekle - Sisyphos Ajans{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('sosyal_medya') }}">Sosyal Medya</a></li>
+                <li class="breadcrumb-item active">Yeni Gönderi</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
     <div class="container mt-4">
         <div class="row justify-content-center">
             <div class="col-md-8">
@@ -53,7 +33,7 @@
                                         <option value="">Müşteri seçin...</option>
                                         {% for musteri in musteriler %}
                                         <option value="{{ musteri.id }}" {% if secili_musteri_id == musteri.id %}selected{% endif %}>
-                                            {{ musteri.musteri_id }} - {{ musteri.ad }}
+                                            {{ musteri.musteri_kodu }} - {{ musteri.ad }}
                                         </option>
                                         {% endfor %}
                                     </select>
@@ -141,14 +121,14 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Sayfa yüklendiğinde bugünün tarihini otomatik ayarla
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('tarih').value = today;
-        });
-    </script>
-</body>
-</html>
+{% block extra_js %}
+<script>
+    // Sayfa yüklendiğinde bugünün tarihini otomatik ayarla
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('tarih').value = today;
+    });
+</script>
+{% endblock %}

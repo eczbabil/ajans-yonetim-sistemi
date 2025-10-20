@@ -317,3 +317,4 @@ pip install -r requirements.txt --force-reinstall
 **Son Güncelleme**: Ekim 2025
 
 
+

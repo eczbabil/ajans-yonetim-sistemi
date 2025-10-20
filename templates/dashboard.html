@@ -39,7 +39,7 @@
     <!-- KPI Kartları -->
     <div class="row g-3 mb-4">
         <!-- Toplam Müşteri -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-6 col-lg-4">
             <div class="kpi-card primary">
                 <h4><i class="bi bi-people"></i> Toplam Müşteri</h4>
                 <div class="value">{{ metrics.toplam_musteri }}</div>
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Bu Ay İş -->
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-6 col-lg-4">
             <div class="kpi-card success">
                 <h4><i class="bi bi-calendar-check"></i> Bu Ay İş</h4>
                 <div class="value">{{ metrics.bu_ay_is }}</div>
@@ -56,43 +56,9 @@
             </div>
         </div>
 
-        <!-- Onaylanan Teslimatlar -->
-        <div class="col-md-6 col-lg-3">
+        <!-- Ortalama -->
+        <div class="col-md-6 col-lg-4">
             <div class="kpi-card warning">
-                <h4><i class="bi bi-box-seam"></i> Onaylanan</h4>
-                <div class="value">{{ metrics.onaylanan_teslimat }}</div>
-                <div class="subtitle">Tamamlanan teslimatlar</div>
-            </div>
-        </div>
-
-        <!-- Toplam Çalışma Saati -->
-        <div class="col-md-6 col-lg-3">
-            <div class="kpi-card danger">
-                <h4><i class="bi bi-clock-history"></i> Toplam Saat</h4>
-                <div class="value">{{ metrics.toplam_saat }}</div>
-                <div class="subtitle">Tüm zamanlar</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- İkincil Metrikler -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="kpi-card">
-                <h4><i class="bi bi-instagram"></i> Reels Sayısı</h4>
-                <div class="value">{{ metrics.reels_sayisi }}</div>
-                <div class="subtitle">Sosyal medya içerikleri</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="kpi-card">
-                <h4><i class="bi bi-hourglass-split"></i> Bekleyen</h4>
-                <div class="value">{{ metrics.bekleyen_teslimat }}</div>
-                <div class="subtitle">Devam eden teslimatlar</div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="kpi-card">
                 <h4><i class="bi bi-activity"></i> Ortalama</h4>
                 <div class="value">
                     {% if metrics.toplam_musteri > 0 %}
@@ -111,7 +77,14 @@
         <!-- İş Tipi Dağılımı -->
         <div class="col-lg-6">
             <div class="chart-container" style="height: 350px;">
-                <h5><i class="bi bi-pie-chart"></i> İş Tipi Dağılımı</h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5><i class="bi bi-pie-chart"></i> İş Tipi Dağılımı</h5>
+                    <select id="isTipiFiltre" class="form-select form-select-sm" style="width: auto;" onchange="isTipiFiltreUygula()">
+                        <option value="ay" selected>Bu Ay</option>
+                        <option value="yil">Bu Yıl</option>
+                        <option value="tumu">Tüm Zamanlar</option>
+                    </select>
+                </div>
                 <canvas id="isTipiChart"></canvas>
             </div>
         </div>
@@ -199,43 +172,70 @@ const colors = {
     indigo: '#6366f1'
 };
 
-// İş Tipi Dağılımı
-const isTipiData = {{ is_tipi_dagilimi|tojson }};
-const isTipiLabels = Object.keys(isTipiData);
-const isTipiValues = Object.values(isTipiData);
+// İş Tipi Dağılımı için global chart nesnesi
+let isTipiChart = null;
 
-if (isTipiLabels.length > 0) {
-    const isTipiCtx = document.getElementById('isTipiChart').getContext('2d');
-    new Chart(isTipiCtx, {
-        type: 'doughnut',
-        data: {
-            labels: isTipiLabels,
-            datasets: [{
-                data: isTipiValues,
-                backgroundColor: [
-                    colors.primary,
-                    colors.success,
-                    colors.warning,
-                    colors.danger,
-                    colors.purple,
-                    colors.pink,
-                    colors.indigo,
-                    colors.info
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
+// İş Tipi Dağılımı
+function renderIsTipiChart(data) {
+    const isTipiLabels = Object.keys(data);
+    const isTipiValues = Object.values(data);
+    
+    if (isTipiLabels.length > 0) {
+        const isTipiCtx = document.getElementById('isTipiChart').getContext('2d');
+        
+        // Önceki chart varsa yok et
+        if (isTipiChart) {
+            isTipiChart.destroy();
+        }
+        
+        isTipiChart = new Chart(isTipiCtx, {
+            type: 'doughnut',
+            data: {
+                labels: isTipiLabels,
+                datasets: [{
+                    data: isTipiValues,
+                    backgroundColor: [
+                        colors.primary,
+                        colors.success,
+                        colors.warning,
+                        colors.danger,
+                        colors.purple,
+                        colors.pink,
+                        colors.indigo,
+                        colors.info
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
                 }
             }
-        }
-    });
+        });
+    }
+}
+
+// İlk yüklemede render et
+const isTipiData = {{ is_tipi_dagilimi|tojson }};
+renderIsTipiChart(isTipiData);
+
+// Filtre değiştiğinde
+function isTipiFiltreUygula() {
+    const filtre = document.getElementById('isTipiFiltre').value;
+    fetch(`/api/is_tipi_dagilimi?filtre=${filtre}`)
+        .then(response => response.json())
+        .then(data => {
+            renderIsTipiChart(data);
+        })
+        .catch(error => {
+            console.error('Veri yüklenirken hata:', error);
+        });
 }
 
 // Teslimat Durum Dağılımı

@@ -270,3 +270,81 @@ def get_teslimat_durum_dagilimi(db):
     
     return result
 
+
+def get_musteri_metrikleri(db, musteri_id, start_date=None, end_date=None):
+    """
+    Belirli bir müşteri için metrikleri hesaplar
+    
+    Args:
+        db: Database session
+        musteri_id: Müşteri ID
+        start_date: Başlangıç tarihi (opsiyonel)
+        end_date: Bitiş tarihi (opsiyonel)
+    
+    Returns:
+        dict: Müşteri metrikleri
+    """
+    from app import IsGunlugu, Teslimat, SosyalMedya
+    
+    # İş günlüğü sorgusu
+    is_query = db.session.query(IsGunlugu).filter(IsGunlugu.musteri_id == musteri_id)
+    if start_date:
+        is_query = is_query.filter(IsGunlugu.tarih >= start_date)
+    if end_date:
+        is_query = is_query.filter(IsGunlugu.tarih <= end_date)
+    
+    # Teslimat sorgusu
+    teslimat_query = db.session.query(Teslimat).filter(Teslimat.musteri_id == musteri_id)
+    if start_date:
+        teslimat_query = teslimat_query.filter(Teslimat.teslim_tarihi >= start_date)
+    if end_date:
+        teslimat_query = teslimat_query.filter(Teslimat.teslim_tarihi <= end_date)
+    
+    # Sosyal medya sorgusu
+    sosyal_query = db.session.query(SosyalMedya).filter(SosyalMedya.musteri_id == musteri_id)
+    if start_date:
+        sosyal_query = sosyal_query.filter(SosyalMedya.tarih >= start_date)
+    if end_date:
+        sosyal_query = sosyal_query.filter(SosyalMedya.tarih <= end_date)
+    
+    # Toplam çalışma saati
+    toplam_dakika = db.session.query(func.sum(IsGunlugu.sure_dakika)).filter(
+        IsGunlugu.musteri_id == musteri_id
+    )
+    if start_date:
+        toplam_dakika = toplam_dakika.filter(IsGunlugu.tarih >= start_date)
+    if end_date:
+        toplam_dakika = toplam_dakika.filter(IsGunlugu.tarih <= end_date)
+    toplam_dakika = toplam_dakika.scalar() or 0
+    toplam_saat = round(toplam_dakika / 60, 1)
+    
+    # İş sayısı
+    is_sayisi = is_query.count()
+    
+    # Onaylanan teslimatlar
+    onaylanan_teslimat = teslimat_query.filter(Teslimat.durum == 'Onaylandı').count()
+    
+    # Bekleyen teslimatlar
+    bekleyen_teslimat = teslimat_query.filter(
+        Teslimat.durum.in_(['Hazırlanıyor', 'Bekliyor', 'Revizede', 'Devam Ediyor'])
+    ).count()
+    
+    # Reels sayısı
+    reels_sayisi = sosyal_query.filter(SosyalMedya.gonderi_turu == 'Reels').count()
+    
+    # Toplam teslimat sayısı
+    toplam_teslimat = teslimat_query.count()
+    
+    # Toplam sosyal medya içeriği
+    toplam_sosyal_medya = sosyal_query.count()
+    
+    return {
+        'toplam_saat': toplam_saat,
+        'is_sayisi': is_sayisi,
+        'onaylanan_teslimat': onaylanan_teslimat,
+        'bekleyen_teslimat': bekleyen_teslimat,
+        'reels_sayisi': reels_sayisi,
+        'toplam_teslimat': toplam_teslimat,
+        'toplam_sosyal_medya': toplam_sosyal_medya
+    }
+

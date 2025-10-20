@@ -200,15 +200,58 @@ def musteriler():
 # Müşteri detay sayfası
 @app.route('/musteri_detay/<int:musteri_id>')
 def musteri_detay(musteri_id):
+    from src.utils.statistics import get_musteri_metrikleri
+    from datetime import datetime, timedelta
+    
     musteri = Musteri.query.get_or_404(musteri_id)
-    teslimatlar = Teslimat.query.filter_by(musteri_id=musteri_id).all()
-    sosyal_medyalar = SosyalMedya.query.filter_by(musteri_id=musteri_id).all()
-    revizyonlar = Revizyon.query.filter_by(musteri_id=musteri_id).all()
+    
+    # Filtre parametresi
+    filtre = request.args.get('filtre', 'ay')
+    today = datetime.now().date()
+    
+    # Tarih aralığını belirle
+    if filtre == 'ay':
+        start_date = datetime(today.year, today.month, 1).date()
+        end_date = None
+    elif filtre == 'yil':
+        start_date = datetime(today.year, 1, 1).date()
+        end_date = None
+    elif filtre == '6ay':
+        start_date = today - timedelta(days=180)
+        end_date = None
+    else:  # 'tumu'
+        start_date = None
+        end_date = None
+    
+    # Metrikleri hesapla
+    metrikler = get_musteri_metrikleri(db, musteri_id, start_date, end_date)
+    
+    # Teslimatlar, sosyal medya, revizyonlar - filtreye göre
+    teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
+    sosyal_query = SosyalMedya.query.filter_by(musteri_id=musteri_id)
+    revizyon_query = Revizyon.query.filter_by(musteri_id=musteri_id)
+    
+    if start_date:
+        teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
+        sosyal_query = sosyal_query.filter(SosyalMedya.tarih >= start_date)
+        revizyon_query = revizyon_query.filter(Revizyon.tarih >= start_date)
+    
+    if end_date:
+        teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
+        sosyal_query = sosyal_query.filter(SosyalMedya.tarih <= end_date)
+        revizyon_query = revizyon_query.filter(Revizyon.tarih <= end_date)
+    
+    teslimatlar = teslimatlar_query.all()
+    sosyal_medyalar = sosyal_query.all()
+    revizyonlar = revizyon_query.all()
+    
     return render_template('musteri_detay.html',
                          musteri=musteri,
                          teslimatlar=teslimatlar,
                          sosyal_medyalar=sosyal_medyalar,
-                         revizyonlar=revizyonlar)
+                         revizyonlar=revizyonlar,
+                         metrikler=metrikler,
+                         filtre=filtre)
 
 @app.route('/musteri_ekle', methods=['GET', 'POST'])
 def musteri_ekle():
@@ -253,15 +296,20 @@ def is_gunlugu():
 def is_ekle():
     musteriler = Musteri.query.all()
     if request.method == 'POST':
+        # Saat ve dakikayı toplam dakikaya çevir
+        sure_saat = int(request.form.get('sure_saat', 0))
+        sure_dakika = int(request.form.get('sure_dakika', 0))
+        toplam_dakika = (sure_saat * 60) + sure_dakika
+        
         is_gunlugu = IsGunlugu(
             tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
             musteri_id=int(request.form['musteri_id']),
-            proje=request.form['proje'],
+            proje=request.form.get('proje', ''),
             aktivite_turu=request.form['aktivite_turu'],
             aciklama=request.form['aciklama'],
-            sorumlu_kisi=request.form['sorumlu_kisi'],
-            sure_dakika=int(request.form['sure_dakika']),
-            etiketler=request.form['etiketler']
+            sorumlu_kisi=request.form.get('sorumlu_kisi', ''),
+            sure_dakika=toplam_dakika,
+            etiketler=request.form.get('etiketler', '')
         )
         db.session.add(is_gunlugu)
         db.session.commit()
@@ -363,6 +411,30 @@ def api_teslimatlar(musteri_id):
             'durum': teslimat.durum
         })
     return jsonify(result)
+
+# API endpoint - İş tipi dağılımı filtreleme
+@app.route('/api/is_tipi_dagilimi')
+def api_is_tipi_dagilimi():
+    from src.utils.statistics import get_is_tipi_dagilimi
+    from datetime import datetime, timedelta
+    
+    filtre = request.args.get('filtre', 'ay')
+    today = datetime.now().date()
+    
+    if filtre == 'ay':
+        # Bu ayın ilk günü
+        start_date = datetime(today.year, today.month, 1).date()
+        end_date = None
+    elif filtre == 'yil':
+        # Bu yılın ilk günü
+        start_date = datetime(today.year, 1, 1).date()
+        end_date = None
+    else:  # 'tumu'
+        start_date = None
+        end_date = None
+    
+    data = get_is_tipi_dagilimi(db, start_date, end_date)
+    return jsonify(data)
 
 # Revizyon ekleme
 @app.route('/revizyon_ekle', methods=['GET', 'POST'])
@@ -547,6 +619,58 @@ def arama_sil(arama_id):
         logger.error(f"Arama silme hatası: {str(e)}", exc_info=True)
         flash(f'Hata: {str(e)}', 'error')
     return redirect(url_for('aramalar'))
+
+# Müşteri raporu Word indirme
+@app.route('/musteri/<int:musteri_id>/rapor')
+def musteri_rapor_indir(musteri_id):
+    from src.utils.report_generator import generate_musteri_raporu
+    from datetime import datetime, timedelta
+    from flask import send_file
+    import os
+    
+    musteri = Musteri.query.get_or_404(musteri_id)
+    
+    # Filtre parametresi
+    filtre = request.args.get('filtre', 'ay')
+    today = datetime.now().date()
+    
+    # Tarih aralığını belirle
+    if filtre == 'ay':
+        start_date = datetime(today.year, today.month, 1).date()
+        end_date = None
+    elif filtre == 'yil':
+        start_date = datetime(today.year, 1, 1).date()
+        end_date = None
+    elif filtre == '6ay':
+        start_date = today - timedelta(days=180)
+        end_date = None
+    else:  # 'tumu'
+        start_date = None
+        end_date = None
+    
+    try:
+        # Rapor oluştur
+        doc = generate_musteri_raporu(db, musteri, start_date, end_date)
+        
+        # Dosya adı oluştur
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{musteri.ad.replace(' ', '_')}_{timestamp}_rapor.docx"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        # Kaydet
+        doc.save(filepath)
+        
+        # İndir
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except Exception as e:
+        logger.error(f"Rapor oluşturma hatası: {str(e)}", exc_info=True)
+        flash(f'Rapor oluşturulurken hata: {str(e)}', 'error')
+        return redirect(url_for('musteri_detay', musteri_id=musteri_id))
 
 @app.route('/excel_export')
 def excel_export():
