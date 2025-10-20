@@ -517,65 +517,6 @@ def api_is_tipi_dagilimi():
     return jsonify(data)
 
 # İş onay/red/revize route'ları
-@app.route('/is_onay/<int:is_id>', methods=['POST'])
-def is_onay(is_id):
-    """İşi onayla"""
-    try:
-        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-        is_gunlugu.durum = 'Onaylandı'
-        
-        # İlgili revizyonları da tamamlandı yap
-        if is_gunlugu.teslimat_id:
-            revizyonlar = Revizyon.query.filter_by(teslimat_id=is_gunlugu.teslimat_id).all()
-            for revizyon in revizyonlar:
-                revizyon.durum = 'Tamamlandı'
-        
-        db.session.commit()
-        flash('İş onaylandı!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"İş onay hatası: {str(e)}", exc_info=True)
-        flash(f'Hata: {str(e)}', 'error')
-    
-    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
-
-@app.route('/is_red/<int:is_id>', methods=['POST'])
-def is_red(is_id):
-    """İşi reddet"""
-    try:
-        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-        is_gunlugu.durum = 'Reddedildi'
-        
-        # İlgili revizyonları da reddedildi yap
-        if is_gunlugu.teslimat_id:
-            revizyonlar = Revizyon.query.filter_by(teslimat_id=is_gunlugu.teslimat_id).all()
-            for revizyon in revizyonlar:
-                revizyon.durum = 'Reddedildi'
-        
-        db.session.commit()
-        flash('İş reddedildi!', 'warning')
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"İş red hatası: {str(e)}", exc_info=True)
-        flash(f'Hata: {str(e)}', 'error')
-    
-    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
-
-@app.route('/is_tekrar_revize/<int:is_id>', methods=['POST'])
-def is_tekrar_revize(is_id):
-    """İşi tekrar revizeye gönder"""
-    try:
-        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-        is_gunlugu.durum = 'Revizede'
-        db.session.commit()
-        flash('İş tekrar revizeye gönderildi!', 'info')
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"İş tekrar revize hatası: {str(e)}", exc_info=True)
-        flash(f'Hata: {str(e)}', 'error')
-    
-    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
-
 @app.route('/is_onaya_gonder/<int:is_id>', methods=['POST'])
 def is_onaya_gonder(is_id):
     """İşi onaya gönder (revizyonlardan)"""
