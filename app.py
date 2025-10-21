@@ -303,11 +303,7 @@ def musteri_detay(musteri_id):
         onayda_bekleyenler_query = onayda_bekleyenler_query.filter(IsGunlugu.tarih <= end_date)
     onayda_bekleyenler = onayda_bekleyenler_query.order_by(IsGunlugu.tarih.desc()).all()
     
-    # Her teslimat için revizyon sayısını hesapla
-    revizyon_sayilari = {}
-    for teslimat in teslimatlar:
-        revizyon_sayisi = Revizyon.query.filter_by(teslimat_id=teslimat.id).count()
-        revizyon_sayilari[teslimat.id] = revizyon_sayisi
+    # Revizyon sayısı artık her iş için ayrı takip ediliyor (is_gunlugu.revizyon_sayisi)
     
     # Dashboard İstatistikleri
     # 1. Toplam çalışma saati (iş günlüğünden)
@@ -343,7 +339,6 @@ def musteri_detay(musteri_id):
                          revizyonlar=revizyonlar,
                          isler=isler,
                          onayda_bekleyenler=onayda_bekleyenler,
-                         revizyon_sayilari=revizyon_sayilari,
                          aramalar=aramalar,
                          metrikler=metrikler,
                          filtre=filtre,
