@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
 import pandas as pd
@@ -6,6 +6,7 @@ import os
 from werkzeug.utils import secure_filename
 from logger_config import setup_logger
 from dotenv import load_dotenv
+from functools import wraps
 
 # Environment variables yükle
 load_dotenv()
@@ -38,6 +39,31 @@ db = SQLAlchemy(app)
 
 # Logger'ı kur
 logger = setup_logger(app)
+
+# Giriş ayarları
+LOGIN_PASSWORD = 'AeB1254.k'
+SECURITY_ANSWER = 'taş2025.yukarı'
+
+# Login decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            flash('Lütfen giriş yapın.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Her istekten önce login kontrol et
+@app.before_request
+def check_login():
+    # Login gerektirmeyen sayfalar
+    allowed_routes = ['login', 'reset_password', 'static']
+    
+    if request.endpoint and request.endpoint not in allowed_routes:
+        if 'logged_in' not in session:
+            flash('Lütfen giriş yapın.', 'warning')
+            return redirect(url_for('login'))
 
 # Veritabanı modelleri
 class Musteri(db.Model):
@@ -208,6 +234,38 @@ def generate_is_kodu(musteri):
             if not exists:
                 return yeni_kod
             yeni_numara += 1
+
+# Giriş sayfası
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == LOGIN_PASSWORD:
+            session['logged_in'] = True
+            flash('Başarıyla giriş yaptınız!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Hatalı şifre!', 'error')
+    return render_template('login.html')
+
+# Şifre sıfırlama
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    if request.method == 'POST':
+        answer = request.form.get('answer')
+        if answer == SECURITY_ANSWER:
+            # Şifreyi göster
+            return render_template('reset_password.html', show_password=True, password=LOGIN_PASSWORD)
+        else:
+            flash('Hatalı cevap!', 'error')
+    return render_template('reset_password.html', show_password=False)
+
+# Çıkış
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    flash('Çıkış yaptınız.', 'info')
+    return redirect(url_for('login'))
 
 # Ana sayfa - Modern Dashboard
 @app.route('/')
