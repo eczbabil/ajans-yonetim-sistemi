@@ -33,6 +33,10 @@
                     </p>
                 </div>
                 <div>
+                    <a href="{{ url_for('musteri.musteri_rapor', musteri_id=musteri.id) }}" 
+                       class="btn btn-info btn-lg me-2">
+                        <i class="bi bi-bar-chart"></i> Raporlar
+                    </a>
                     <a href="{{ url_for('musteri_rapor_indir', musteri_id=musteri.id) }}?filtre={{ filtre }}" 
                        class="btn btn-primary btn-lg">
                         <i class="bi bi-file-earmark-word"></i> Word Rapor İndir
@@ -61,62 +65,53 @@
         </div>
     </div>
 
-    <!-- KPI Metrik Kartları -->
+    <!-- Dashboard İstatistik Kartları -->
     <div class="row g-3 mb-4">
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-6 col-lg-2">
             <div class="kpi-card primary">
                 <h4><i class="bi bi-clock-history"></i> Toplam Saat</h4>
-                <div class="value">{{ metrikler.toplam_saat }}</div>
+                <div class="value">{{ "%.1f"|format(toplam_saat) }}</div>
                 <div class="subtitle">Çalışma saati</div>
             </div>
         </div>
 
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-6 col-lg-2">
             <div class="kpi-card success">
                 <h4><i class="bi bi-check-circle"></i> Onaylanan</h4>
-                <div class="value">{{ metrikler.onaylanan_teslimat }}</div>
+                <div class="value">{{ onaylanan_teslimatlar }}</div>
                 <div class="subtitle">Tamamlanan teslimatlar</div>
             </div>
         </div>
-
-        <div class="col-md-6 col-lg-3">
+        
+        <div class="col-md-6 col-lg-2">
             <div class="kpi-card warning">
                 <h4><i class="bi bi-hourglass-split"></i> Bekleyen</h4>
-                <div class="value">{{ metrikler.bekleyen_teslimat }}</div>
+                <div class="value">{{ devam_eden_teslimatlar }}</div>
                 <div class="subtitle">Devam eden teslimatlar</div>
             </div>
         </div>
-
-        <div class="col-md-6 col-lg-3">
-            <div class="kpi-card danger">
-                <h4><i class="bi bi-instagram"></i> Reels</h4>
-                <div class="value">{{ metrikler.reels_sayisi }}</div>
-                <div class="subtitle">Sosyal medya içeriği</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- İkincil Metrikler -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="kpi-card">
-                <h4><i class="bi bi-list-task"></i> Toplam İş</h4>
-                <div class="value">{{ metrikler.is_sayisi }}</div>
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card info">
+                <h4><i class="bi bi-journal-text"></i> Toplam İş</h4>
+                <div class="value">{{ toplam_is }}</div>
                 <div class="subtitle">İş günlüğü kaydı</div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="kpi-card">
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card secondary">
                 <h4><i class="bi bi-box-seam"></i> Teslimatlar</h4>
-                <div class="value">{{ metrikler.toplam_teslimat }}</div>
+                <div class="value">{{ toplam_teslimat }}</div>
                 <div class="subtitle">Toplam teslimat</div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="kpi-card">
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card danger">
                 <h4><i class="bi bi-share"></i> Sosyal Medya</h4>
-                <div class="value">{{ metrikler.toplam_sosyal_medya }}</div>
-                <div class="subtitle">Toplam içerik</div>
+                <div class="value">{{ sosyal_medya_teslimat }}</div>
+                <div class="subtitle">Sosyal medya içeriği</div>
             </div>
         </div>
     </div>
@@ -200,6 +195,46 @@
             </div>
         </div>
     </div>
+
+    <!-- Aramalar -->
+    {% if aramalar %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-telephone"></i> Son Aramalar</h5>
+                    <a href="{{ url_for('arama_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Yeni Arama Ekle
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Arayan</th>
+                                    <th>Konu</th>
+                                    <th>Notlar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for arama in aramalar %}
+                                <tr>
+                                    <td>{{ arama.tarih.strftime('%d.%m.%Y %H:%M') if arama.tarih else '-' }}</td>
+                                    <td>{{ arama.arayan or '-' }}</td>
+                                    <td>{{ arama.konu or '-' }}</td>
+                                    <td>{{ arama.notlar[:50] if arama.notlar else '-' }}...</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Onayda Bekleyen İşler -->
     {% if onayda_bekleyenler %}
@@ -299,14 +334,17 @@
                                     </td>
                                     <td>
                                         {% if is.durum in ['Bekliyor', 'Revizede'] %}
+                                        <button class="btn btn-sm btn-success" onclick="isOnay({{ is.id }}, '{{ is.is_kodu }}')">
+                                            <i class="bi bi-check-circle"></i> Onay
+                                        </button>
                                         <button class="btn btn-sm btn-warning" onclick="revizyonModalAc({{ is.id }}, '{{ is.is_kodu }}', '{{ is.aciklama[:50] if is.aciklama else '' }}', {{ is.revizyon_sayisi or 0 }})">
                                             <i class="bi bi-arrow-repeat"></i> Revize Geldi
                                         </button>
                                         {% endif %}
-                                        {% if is.durum == 'Revizede' %}
-                                        <button class="btn btn-sm btn-primary" onclick="isOnayaGonder({{ is.id }})">
-                                            <i class="bi bi-send"></i> Onaya Gönder
-                                        </button>
+                                        {% if is.durum in ['Bekliyor', 'Revizede', 'Onayda', 'Onaylandı', 'Reddedildi'] %}
+                                        <a href="{{ url_for('is_gunlugu.is_duzenle', is_id=is.id) }}" class="btn btn-sm btn-secondary">
+                                            <i class="bi bi-pencil"></i> Düzenle
+                                        </a>
                                         {% endif %}
                                     </td>
                                 </tr>
