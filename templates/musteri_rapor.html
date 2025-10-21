@@ -159,9 +159,12 @@
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
-                                              data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
+                                              title="Açıklama (Kopyalayabilirsiniz)">
                                             {{ is.aciklama[:80] if is.aciklama else '-' }}
                                         </span>
                                     </td>
@@ -226,9 +229,12 @@
                                     <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td>{{ revizyon.revize_talep_eden or '-' }}</td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
-                                              data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="{{ revizyon.revize_konusu if revizyon.revize_konusu else '-' }}">
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ revizyon.revize_konusu if revizyon.revize_konusu else '-' }}"
+                                              title="Revize Konusu (Kopyalayabilirsiniz)">
                                             {{ revizyon.revize_konusu[:60] if revizyon.revize_konusu else '-' }}{% if revizyon.revize_konusu and revizyon.revize_konusu|length > 60 %}...{% endif %}
                                         </span>
                                     </td>
@@ -287,9 +293,12 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
-                                              data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="{{ teslimat.baslik if teslimat.baslik else '-' }}">
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ teslimat.baslik if teslimat.baslik else '-' }}"
+                                              title="Başlık (Kopyalayabilirsiniz)">
                                             {{ teslimat.baslik[:60] if teslimat.baslik else '-' }}{% if teslimat.baslik and teslimat.baslik|length > 60 %}...{% endif %}
                                         </span>
                                     </td>
@@ -419,11 +428,24 @@
 
 {% block extra_js %}
 <script>
-// Bootstrap tooltip'lerini aktif et
+// Bootstrap popover'ları aktif et (tıklanabilir, kopyalanabilir)
 document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl, {
+            trigger: 'click',
+            html: false,
+            sanitize: false
+        });
+    });
+    
+    // Dışarı tıklayınca popover'ları kapat
+    document.addEventListener('click', function (e) {
+        popoverList.forEach(function(popover) {
+            if (!popover._element.contains(e.target)) {
+                popover.hide();
+            }
+        });
     });
 });
 

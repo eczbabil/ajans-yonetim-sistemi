@@ -43,24 +43,24 @@
     </div>
 
     <!-- Hızlı İşlemler -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
                 <div class="card-header">
                     <h5><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
-                </div>
-                <div class="card-body">
+                    </div>
+                    <div class="card-body">
                     <div class="row g-2">
                         <div class="col-md-4">
                             <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-primary w-100 btn-lg">
                                 <i class="bi bi-plus-circle"></i> İş Ekle
                             </a>
-                        </div>
+                            </div>
                         <div class="col-md-4">
                             <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-danger w-100 btn-lg">
                                 <i class="bi bi-share"></i> Sosyal Medya Ekle
                             </a>
-                        </div>
+                            </div>
                         <div class="col-md-4">
                             <a href="{{ url_for('arama_ekle', musteri_id=musteri.id) }}" class="btn btn-info w-100 btn-lg">
                                 <i class="bi bi-telephone-plus"></i> Arama / Toplantı Ekle
@@ -112,16 +112,16 @@
                 </div>
                 <div class="card-body">
                     <p>{{ musteri.notlar or 'Not bulunmuyor.' }}</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- Aramalar -->
     {% if aramalar %}
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5><i class="bi bi-telephone"></i> Son Aramalar</h5>
                     <a href="{{ url_for('arama_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
@@ -151,10 +151,10 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
     {% endif %}
 
     <!-- Onayda Bekleyen İşler -->
@@ -188,9 +188,12 @@
                                     </td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
-                                              data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
+                                              title="Açıklama (Kopyalayabilirsiniz)">
                                             {{ is.aciklama[:60] if is.aciklama else '-' }}{% if is.aciklama and is.aciklama|length > 60 %}...{% endif %}
                                         </span>
                                     </td>
@@ -255,9 +258,12 @@
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
-                                              data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
+                                              title="Açıklama (Kopyalayabilirsiniz)">
                                             {{ is.aciklama[:50] if is.aciklama else '-' }}{% if is.aciklama and is.aciklama|length > 50 %}...{% endif %}
                                         </span>
                                     </td>
@@ -296,42 +302,42 @@
                     {% else %}
                     <p class="text-center text-muted">Henüz iş günlüğü kaydı bulunmuyor.</p>
                     {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Teslimatlar Tablosu -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
+        <!-- Teslimatlar Tablosu -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
                 <div class="card-header">
                     <h5><i class="bi bi-box-seam"></i> Teslimatlar</h5>
-                </div>
-                <div class="card-body">
-                    {% if teslimatlar %}
-                    <div class="table-responsive">
+                    </div>
+                    <div class="card-body">
+                        {% if teslimatlar %}
+                        <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead>
-                                <tr>
+                                <thead>
+                                    <tr>
                                     <th>İş Kodu</th>
-                                    <th>Başlık</th>
+                                        <th>Başlık</th>
                                     <th>Tür</th>
                                     <th>Sorumlu</th>
-                                    <th>Teslim Tarihi</th>
-                                    <th>Durum</th>
+                                        <th>Teslim Tarihi</th>
+                                        <th>Durum</th>
                                     <th>Revizyonlar</th>
-                                    <th>İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for teslimat in teslimatlar %}
-                                <tr>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for teslimat in teslimatlar %}
+                                    <tr>
                                     <td>
                                         {% set is_gunlugu = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
                                         <strong>{{ is_gunlugu.is_kodu if is_gunlugu else '-' }}</strong>
                                     </td>
-                                    <td>{{ teslimat.baslik or '-' }}</td>
+                                        <td>{{ teslimat.baslik or '-' }}</td>
                                     <td>
                                         <span class="badge 
                                             {% if teslimat.teslim_turu == 'Sosyal Medya' %}bg-danger
@@ -340,17 +346,17 @@
                                             {{ teslimat.teslim_turu or 'Diğer' }}
                                         </span>
                                     </td>
-                                    <td>{{ teslimat.sorumlu_kisi or '-' }}</td>
-                                    <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
-                                    <td>
+                                        <td>{{ teslimat.sorumlu_kisi or '-' }}</td>
+                                        <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
+                                        <td>
                                         <span class="badge 
                                             {% if teslimat.durum == 'Teslim Edildi' %}bg-success
                                             {% elif teslimat.durum == 'Tamamlandı' %}bg-success
                                             {% elif teslimat.durum == 'Hazırlanıyor' %}bg-warning
                                             {% else %}bg-secondary{% endif %}">
                                             {{ teslimat.durum or 'Hazırlanıyor' }}
-                                        </span>
-                                    </td>
+                                            </span>
+                                        </td>
                                     <td>
                                         {% set is_gunlugu = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
                                         {% if is_gunlugu and is_gunlugu.revizyon_sayisi > 0 %}
@@ -374,44 +380,44 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center text-muted">Henüz teslimat verisi bulunmuyor.</p>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <p class="text-center text-muted">Henüz teslimat verisi bulunmuyor.</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Revizyonlar Tablosu -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
+        <!-- Revizyonlar Tablosu -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
                 <div class="card-header">
                     <h5><i class="bi bi-arrow-repeat"></i> Revizyonlar</h5>
-                </div>
-                <div class="card-body">
-                    {% if revizyonlar %}
-                    <div class="table-responsive">
+                    </div>
+                    <div class="card-body">
+                        {% if revizyonlar %}
+                        <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead>
-                                <tr>
+                                <thead>
+                                    <tr>
                                     <th>Revizyon</th>
                                     <th>İş Kodu</th>
-                                    <th>Tarih</th>
+                                        <th>Tarih</th>
                                     <th>Talep Eden</th>
                                     <th>Konu</th>
-                                    <th>Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for revizyon in revizyonlar %}
-                                <tr>
+                                        <th>Durum</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for revizyon in revizyonlar %}
+                                    <tr>
                                     <td><strong>{{ revizyon.baslik or 'Revizyon 1' }}</strong></td>
                                     <td>
                                         {% if revizyon.is_gunlugu_id %}
@@ -425,8 +431,8 @@
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
-                                    <td>{{ revizyon.revize_talep_eden }}</td>
+                                        <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
+                                        <td>{{ revizyon.revize_talep_eden }}</td>
                                     <td>{{ revizyon.revize_konusu[:50] if revizyon.revize_konusu else '-' }}...</td>
                                     <td>
                                         <span class="badge 
@@ -435,25 +441,25 @@
                                             {% elif revizyon.durum == 'Tekrar Revize Geldi' %}bg-secondary
                                             {% elif revizyon.durum == 'Reddedildi' %}bg-danger
                                             {% else %}bg-secondary{% endif %}">
-                                            {{ revizyon.durum }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                                {{ revizyon.durum }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-center text-muted">Henüz revizyon verisi bulunmuyor.</p>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <p class="text-center text-muted">Henüz revizyon verisi bulunmuyor.</p>
-                    {% endif %}
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Geri Dön Butonu -->
-    <div class="row">
-        <div class="col">
+        <!-- Geri Dön Butonu -->
+        <div class="row">
+            <div class="col">
             <a href="{{ url_for('musteriler') }}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Müşteri Listesine Dön
             </a>
@@ -510,7 +516,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+    <script>
 let revizyonModal;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -520,10 +526,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('revizeTarihi').value = today;
     
-    // Bootstrap tooltip'lerini aktif et
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+    // Bootstrap popover'ları aktif et (tıklanabilir, kopyalanabilir)
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl, {
+            trigger: 'click',
+            html: false,
+            sanitize: false
+        });
+    });
+    
+    // Dışarı tıklayınca popover'ları kapat
+    document.addEventListener('click', function (e) {
+        popoverList.forEach(function(popover) {
+            if (!popover._element.contains(e.target)) {
+                popover.hide();
+            }
+        });
     });
 });
 
@@ -610,7 +629,7 @@ function isOnayaGonder(isId) {
 }
 
 // Revizyon kaydet
-function revizyonKaydet() {
+        function revizyonKaydet() {
     document.getElementById('revizyonForm').submit();
 }
 
@@ -706,11 +725,11 @@ function isDetayAc(isId) {
             // Bootstrap modal aç
             isDetayModal = new bootstrap.Modal(document.getElementById('isDetayModal'));
             isDetayModal.show();
-        })
-        .catch(error => {
-            console.error('Hata:', error);
+            })
+            .catch(error => {
+                console.error('Hata:', error);
             alert('İş detayı yüklenirken hata oluştu!');
-        });
-}
-</script>
+            });
+        }
+    </script>
 {% endblock %}

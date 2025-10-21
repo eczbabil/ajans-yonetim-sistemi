@@ -78,9 +78,12 @@
                                         <strong>{{ is.proje or '-' }}</strong>
                                     </td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
-                                              data-bs-toggle="tooltip" data-bs-placement="top" 
-                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
+                                              title="Açıklama (Kopyalayabilirsiniz)">
                                             {% if is.aciklama %}
                                                 {% if is.aciklama|length > 50 %}
                                                     {{ is.aciklama[:50] }}...
@@ -202,11 +205,24 @@
 
 {% block extra_js %}
 <script>
-// Bootstrap tooltip'lerini aktif et
+// Bootstrap popover'ları aktif et (tıklanabilir, kopyalanabilir)
 document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl, {
+            trigger: 'click',
+            html: false,
+            sanitize: false
+        });
+    });
+    
+    // Dışarı tıklayınca popover'ları kapat
+    document.addEventListener('click', function (e) {
+        popoverList.forEach(function(popover) {
+            if (!popover._element.contains(e.target)) {
+                popover.hide();
+            }
+        });
     });
 });
 </script>
