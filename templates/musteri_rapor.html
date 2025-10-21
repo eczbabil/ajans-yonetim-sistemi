@@ -164,7 +164,7 @@
                                               data-bs-trigger="click" 
                                               data-bs-placement="top" 
                                               data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
-                                              title="Açıklama (Kopyalayabilirsiniz)">
+                                              title="Açıklama">
                                             {{ is.aciklama[:80] if is.aciklama else '-' }}
                                         </span>
                                     </td>
@@ -234,7 +234,7 @@
                                               data-bs-trigger="click" 
                                               data-bs-placement="top" 
                                               data-bs-content="{{ revizyon.revize_konusu if revizyon.revize_konusu else '-' }}"
-                                              title="Revize Konusu (Kopyalayabilirsiniz)">
+                                              title="Revize Konusu">
                                             {{ revizyon.revize_konusu[:60] if revizyon.revize_konusu else '-' }}{% if revizyon.revize_konusu and revizyon.revize_konusu|length > 60 %}...{% endif %}
                                         </span>
                                     </td>
@@ -298,7 +298,7 @@
                                               data-bs-trigger="click" 
                                               data-bs-placement="top" 
                                               data-bs-content="{{ teslimat.baslik if teslimat.baslik else '-' }}"
-                                              title="Başlık (Kopyalayabilirsiniz)">
+                                              title="Başlık">
                                             {{ teslimat.baslik[:60] if teslimat.baslik else '-' }}{% if teslimat.baslik and teslimat.baslik|length > 60 %}...{% endif %}
                                         </span>
                                     </td>

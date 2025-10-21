@@ -193,7 +193,7 @@
                                               data-bs-trigger="click" 
                                               data-bs-placement="top" 
                                               data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
-                                              title="Açıklama (Kopyalayabilirsiniz)">
+                                              title="Açıklama">
                                             {{ is.aciklama[:60] if is.aciklama else '-' }}{% if is.aciklama and is.aciklama|length > 60 %}...{% endif %}
                                         </span>
                                     </td>
@@ -263,7 +263,7 @@
                                               data-bs-trigger="click" 
                                               data-bs-placement="top" 
                                               data-bs-content="{{ is.aciklama if is.aciklama else '-' }}"
-                                              title="Açıklama (Kopyalayabilirsiniz)">
+                                              title="Açıklama">
                                             {{ is.aciklama[:50] if is.aciklama else '-' }}{% if is.aciklama and is.aciklama|length > 50 %}...{% endif %}
                                         </span>
                                     </td>
