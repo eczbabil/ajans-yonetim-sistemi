@@ -279,6 +279,13 @@ def musteri_detay(musteri_id):
     
     musteri = Musteri.query.get_or_404(musteri_id)
     
+    # Pagination parametreleri
+    is_page = request.args.get('is_page', 1, type=int)
+    teslimat_page = request.args.get('teslimat_page', 1, type=int)
+    revizyon_page = request.args.get('revizyon_page', 1, type=int)
+    arama_page = request.args.get('arama_page', 1, type=int)
+    per_page = 20  # Her sayfada 20 kayıt
+    
     # Filtre parametresi
     filtre = request.args.get('filtre', 'ay')
     today = datetime.now().date()
@@ -318,12 +325,36 @@ def musteri_detay(musteri_id):
         revizyon_query = revizyon_query.filter(Revizyon.tarih <= end_date)
         is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih <= end_date)
     
-    teslimatlar = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).all()
-    sosyal_medyalar = sosyal_query.order_by(SosyalMedya.tarih.desc()).all()
-    revizyonlar = revizyon_query.order_by(Revizyon.tarih.desc()).all()
-    isler = is_gunlugu_query.order_by(IsGunlugu.tarih.desc()).all()
+    # Pagination uygula
+    teslimatlar_pagination = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).paginate(
+        page=teslimat_page, per_page=per_page, error_out=False)
+    revizyonlar_pagination = revizyon_query.order_by(Revizyon.tarih.desc()).paginate(
+        page=revizyon_page, per_page=per_page, error_out=False)
+    isler_pagination = is_gunlugu_query.order_by(IsGunlugu.tarih.desc()).paginate(
+        page=is_page, per_page=per_page, error_out=False)
     
-    # Onayda bekleyen işler
+    teslimatlar = teslimatlar_pagination.items
+    revizyonlar = revizyonlar_pagination.items
+    isler = isler_pagination.items
+    
+    # Sosyal medya ve aramalar - sayfalama yok (genelde az veri)
+    sosyal_medyalar = sosyal_query.order_by(SosyalMedya.tarih.desc()).all()
+    
+    # Aramalar
+    try:
+        aramalar_query = Arama.query.filter_by(musteri_id=musteri_id)
+        if start_date:
+            aramalar_query = aramalar_query.filter(Arama.tarih >= start_date)
+        if end_date:
+            aramalar_query = aramalar_query.filter(Arama.tarih <= end_date)
+        aramalar_pagination = aramalar_query.order_by(Arama.tarih.desc()).paginate(
+            page=arama_page, per_page=per_page, error_out=False)
+        aramalar = aramalar_pagination.items
+    except:
+        aramalar = []
+        aramalar_pagination = None
+    
+    # Onayda bekleyen işler - sayfalama yok (genelde az veri)
     onayda_bekleyenler_query = IsGunlugu.query.filter_by(musteri_id=musteri_id, durum='Onayda')
     if start_date:
         onayda_bekleyenler_query = onayda_bekleyenler_query.filter(IsGunlugu.tarih >= start_date)
@@ -354,20 +385,18 @@ def musteri_detay(musteri_id):
     # 6. Sosyal medya teslimat sayısı
     sosyal_medya_teslimat = len([t for t in teslimatlar if t.teslim_turu == 'Sosyal Medya'])
     
-    # Aramalar (varsa)
-    try:
-        aramalar = Arama.query.filter_by(musteri_id=musteri_id).order_by(Arama.tarih.desc()).limit(10).all()
-    except:
-        aramalar = []
-    
     return render_template('musteri_detay.html',
                          musteri=musteri,
                          teslimatlar=teslimatlar,
+                         teslimatlar_pagination=teslimatlar_pagination,
                          sosyal_medyalar=sosyal_medyalar,
                          revizyonlar=revizyonlar,
+                         revizyonlar_pagination=revizyonlar_pagination,
                          isler=isler,
+                         isler_pagination=isler_pagination,
                          onayda_bekleyenler=onayda_bekleyenler,
                          aramalar=aramalar,
+                         aramalar_pagination=aramalar_pagination,
                          metrikler=metrikler,
                          filtre=filtre,
                          # Dashboard istatistikleri
