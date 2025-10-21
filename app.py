@@ -70,15 +70,25 @@ class Teslimat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     teslimat_kodu = db.Column(db.String(30), unique=True)  # TSL-MST001-001, TSL-MST001-002, etc.
     musteri_id = db.Column(db.Integer, db.ForeignKey('musteri.id'))
+    is_gunlugu_id = db.Column(db.Integer, db.ForeignKey('is_gunlugu.id'), nullable=True)  # Hangi işten geldiği
     aktivite_turu = db.Column(db.String(50))
     proje = db.Column(db.String(100))
-    teslim_turu = db.Column(db.String(50))
+    teslim_turu = db.Column(db.String(50))  # Sosyal Medya / Konvensiyonel / Diğer
     baslik = db.Column(db.String(100))
     sorumlu_kisi = db.Column(db.String(100))
     olusturma_tarihi = db.Column(db.Date)
     teslim_tarihi = db.Column(db.Date)
     durum = db.Column(db.String(20))
     aciklama = db.Column(db.Text)
+    
+    # Sosyal Medya Alanları (sadece teslim_turu="Sosyal Medya" ise doldurulur)
+    platform = db.Column(db.String(50), nullable=True)  # Instagram, Facebook, Twitter, LinkedIn, TikTok, YouTube
+    gonderi_turu = db.Column(db.String(50), nullable=True)  # Post, Reels, Story, Video, Fotoğraf, Carousel
+    etkileşim = db.Column(db.Integer, nullable=True)
+    goruntulenme = db.Column(db.Integer, nullable=True)
+    begeni = db.Column(db.Integer, nullable=True)
+    yorum = db.Column(db.Integer, nullable=True)
+    paylasim = db.Column(db.Integer, nullable=True)
 
 class SosyalMedya(db.Model):
     id = db.Column(db.Integer, primary_key=True)

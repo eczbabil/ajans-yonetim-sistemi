@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}İş Düzenle - Sisyphos Ajans{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('musteri.musteri_detay', musteri_id=is_gunlugu.musteri_id) }}">Müşteri Detay</a></li>
+                <li class="breadcrumb-item active">İş Düzenle</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h3><i class="bi bi-pencil-square"></i> İş Düzenle: {{ is_gunlugu.is_kodu }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="musteri_id" class="form-label">Müşteri *</label>
+                                <select class="form-control" id="musteri_id" name="musteri_id" required disabled>
+                                    {% for musteri in musteriler %}
+                                    <option value="{{ musteri.id }}" {% if is_gunlugu.musteri_id == musteri.id %}selected{% endif %}>
+                                        {{ musteri.musteri_kodu }} - {{ musteri.ad }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Müşteri değiştirilemez</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tarih" class="form-label">Tarih *</label>
+                                <input type="date" class="form-control" id="tarih" name="tarih" value="{{ is_gunlugu.tarih.strftime('%Y-%m-%d') }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="aktivite_turu" class="form-label">Aktivite Türü *</label>
+                                <select class="form-control" id="aktivite_turu" name="aktivite_turu" required>
+                                    <option value="">Seçin...</option>
+                                    <option value="Planlama" {% if is_gunlugu.aktivite_turu == 'Planlama' %}selected{% endif %}>Planlama</option>
+                                    <option value="Tasarım" {% if is_gunlugu.aktivite_turu == 'Tasarım' %}selected{% endif %}>Tasarım</option>
+                                    <option value="Çekim" {% if is_gunlugu.aktivite_turu == 'Çekim' %}selected{% endif %}>Çekim</option>
+                                    <option value="Edit" {% if is_gunlugu.aktivite_turu == 'Edit' %}selected{% endif %}>Edit</option>
+                                    <option value="Yazısal" {% if is_gunlugu.aktivite_turu == 'Yazısal' %}selected{% endif %}>Yazısal</option>
+                                    <option value="Video" {% if is_gunlugu.aktivite_turu == 'Video' %}selected{% endif %}>Video</option>
+                                    <option value="Fotoğraf" {% if is_gunlugu.aktivite_turu == 'Fotoğraf' %}selected{% endif %}>Fotoğraf</option>
+                                    <option value="Toplantı" {% if is_gunlugu.aktivite_turu == 'Toplantı' %}selected{% endif %}>Toplantı</option>
+                                    <option value="Diğer" {% if is_gunlugu.aktivite_turu == 'Diğer' %}selected{% endif %}>Diğer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="sure_saat" class="form-label">Saat *</label>
+                                <input type="number" class="form-control" id="sure_saat" name="sure_saat" required min="0" value="{{ (is_gunlugu.sure_dakika // 60)|int }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="sure_dakika_input" class="form-label">Dakika *</label>
+                                <input type="number" class="form-control" id="sure_dakika_input" name="sure_dakika_input" required min="0" max="59" value="{{ (is_gunlugu.sure_dakika % 60)|int }}">
+                                <input type="hidden" id="sure_dakika" name="sure_dakika" value="{{ is_gunlugu.sure_dakika }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="proje" class="form-label">Proje</label>
+                                <input type="text" class="form-control" id="proje" name="proje" value="{{ is_gunlugu.proje or '' }}" placeholder="Proje adı">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="sorumlu_kisi" class="form-label">Sorumlu Kişi</label>
+                                <input type="text" class="form-control" id="sorumlu_kisi" name="sorumlu_kisi" value="{{ is_gunlugu.sorumlu_kisi or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="aciklama" class="form-label">Açıklama *</label>
+                            <textarea class="form-control" id="aciklama" name="aciklama" rows="3" required placeholder="İş detaylarını açıklayın...">{{ is_gunlugu.aciklama or '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="etiketler" class="form-label">Etiketler</label>
+                            <input type="text" class="form-control" id="etiketler" name="etiketler" value="{{ is_gunlugu.etiketler or '' }}" placeholder="virgülle ayırarak etiketler ekleyin (örn: tasarım,logo)">
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-info-circle"></i> <strong>Not:</strong> Bu işi düzenlediğinizde, ilişkili revizyonlar ve teslimat da otomatik güncellenecektir.
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('musteri.musteri_detay', musteri_id=is_gunlugu.musteri_id) }}" class="btn btn-secondary me-md-2">İptal</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Saat ve dakikayı toplam dakikaya çevir
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const saat = parseInt(document.getElementById('sure_saat').value) || 0;
+        const dakika = parseInt(document.getElementById('sure_dakika_input').value) || 0;
+        const toplamDakika = (saat * 60) + dakika;
+        document.getElementById('sure_dakika').value = toplamDakika;
+    });
+</script>
+{% endblock %}
+

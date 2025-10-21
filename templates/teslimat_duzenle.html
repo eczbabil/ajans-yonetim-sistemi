@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Teslimat Düzenle - Sisyphos Ajans{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('musteri.musteri_detay', musteri_id=teslimat.musteri_id) }}">Müşteri Detay</a></li>
+                <li class="breadcrumb-item active">Teslimat Düzenle</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3><i class="bi bi-box-seam"></i> Teslimat Düzenle: {{ teslimat.teslimat_kodu }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="teslimatForm">
+                        <!-- İş Kodu Bilgisi (readonly) -->
+                        {% if teslimat.is_gunlugu_id %}
+                        <div class="alert alert-info">
+                            <strong>İş Kodu:</strong> 
+                            {% set is_gunlugu = teslimat.is_gunlugu %}
+                            {{ is_gunlugu.is_kodu if is_gunlugu else 'Bilinmiyor' }}
+                        </div>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="teslimat_kodu" class="form-label">Teslimat Kodu</label>
+                                <input type="text" class="form-control" value="{{ teslimat.teslimat_kodu }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="teslim_turu" class="form-label">Teslim Türü *</label>
+                                <select class="form-control" id="teslim_turu" name="teslim_turu" required onchange="toggleSosyalMedyaFields()">
+                                    <option value="">Seçin...</option>
+                                    <option value="Sosyal Medya" {% if teslimat.teslim_turu == 'Sosyal Medya' %}selected{% endif %}>Sosyal Medya</option>
+                                    <option value="Konvensiyonel" {% if teslimat.teslim_turu == 'Konvensiyonel' %}selected{% endif %}>Konvensiyonel</option>
+                                    <option value="Diğer" {% if teslimat.teslim_turu == 'Diğer' %}selected{% endif %}>Diğer</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="baslik" class="form-label">Başlık *</label>
+                                <input type="text" class="form-control" id="baslik" name="baslik" value="{{ teslimat.baslik }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="proje" class="form-label">Proje</label>
+                                <input type="text" class="form-control" id="proje" name="proje" value="{{ teslimat.proje or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="sorumlu_kisi" class="form-label">Sorumlu Kişi *</label>
+                                <input type="text" class="form-control" id="sorumlu_kisi" name="sorumlu_kisi" value="{{ teslimat.sorumlu_kisi }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="teslim_tarihi" class="form-label">Teslim Tarihi *</label>
+                                <input type="date" class="form-control" id="teslim_tarihi" name="teslim_tarihi" value="{{ teslimat.teslim_tarihi.strftime('%Y-%m-%d') if teslimat.teslim_tarihi else '' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="durum" class="form-label">Durum *</label>
+                                <select class="form-control" id="durum" name="durum" required>
+                                    <option value="Hazırlanıyor" {% if teslimat.durum == 'Hazırlanıyor' %}selected{% endif %}>Hazırlanıyor</option>
+                                    <option value="Tamamlandı" {% if teslimat.durum == 'Tamamlandı' %}selected{% endif %}>Tamamlandı</option>
+                                    <option value="Teslim Edildi" {% if teslimat.durum == 'Teslim Edildi' %}selected{% endif %}>Teslim Edildi</option>
+                                    <option value="İptal Edildi" {% if teslimat.durum == 'İptal Edildi' %}selected{% endif %}>İptal Edildi</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="aciklama" class="form-label">Açıklama</label>
+                                <textarea class="form-control" id="aciklama" name="aciklama" rows="2">{{ teslimat.aciklama or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Sosyal Medya Alanları (dinamik göster/gizle) -->
+                        <div id="sosyalMedyaFields" style="display: none;">
+                            <hr>
+                            <h5 class="text-primary"><i class="bi bi-share"></i> Sosyal Medya Metrikleri</h5>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="platform" class="form-label">Platform *</label>
+                                    <select class="form-control" id="platform" name="platform">
+                                        <option value="">Seçin...</option>
+                                        <option value="Instagram" {% if teslimat.platform == 'Instagram' %}selected{% endif %}>Instagram</option>
+                                        <option value="Facebook" {% if teslimat.platform == 'Facebook' %}selected{% endif %}>Facebook</option>
+                                        <option value="Twitter" {% if teslimat.platform == 'Twitter' %}selected{% endif %}>Twitter</option>
+                                        <option value="LinkedIn" {% if teslimat.platform == 'LinkedIn' %}selected{% endif %}>LinkedIn</option>
+                                        <option value="TikTok" {% if teslimat.platform == 'TikTok' %}selected{% endif %}>TikTok</option>
+                                        <option value="YouTube" {% if teslimat.platform == 'YouTube' %}selected{% endif %}>YouTube</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="gonderi_turu" class="form-label">Gönderi Türü *</label>
+                                    <select class="form-control" id="gonderi_turu" name="gonderi_turu">
+                                        <option value="">Seçin...</option>
+                                        <option value="Post" {% if teslimat.gonderi_turu == 'Post' %}selected{% endif %}>Post</option>
+                                        <option value="Reels" {% if teslimat.gonderi_turu == 'Reels' %}selected{% endif %}>Reels</option>
+                                        <option value="Story" {% if teslimat.gonderi_turu == 'Story' %}selected{% endif %}>Story</option>
+                                        <option value="Video" {% if teslimat.gonderi_turu == 'Video' %}selected{% endif %}>Video</option>
+                                        <option value="Fotoğraf" {% if teslimat.gonderi_turu == 'Fotoğraf' %}selected{% endif %}>Fotoğraf</option>
+                                        <option value="Carousel" {% if teslimat.gonderi_turu == 'Carousel' %}selected{% endif %}>Carousel</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="etkilesim" class="form-label">Etkileşim</label>
+                                    <input type="number" class="form-control" id="etkilesim" name="etkilesim" value="{{ teslimat.etkileşim or 0 }}" min="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="goruntulenme" class="form-label">Görüntülenme</label>
+                                    <input type="number" class="form-control" id="goruntulenme" name="goruntulenme" value="{{ teslimat.goruntulenme or 0 }}" min="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="begeni" class="form-label">Beğeni</label>
+                                    <input type="number" class="form-control" id="begeni" name="begeni" value="{{ teslimat.begeni or 0 }}" min="0">
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="yorum" class="form-label">Yorum</label>
+                                    <input type="number" class="form-control" id="yorum" name="yorum" value="{{ teslimat.yorum or 0 }}" min="0">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="paylasim" class="form-label">Paylaşım</label>
+                                    <input type="number" class="form-control" id="paylasim" name="paylasim" value="{{ teslimat.paylasim or 0 }}" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('musteri.musteri_detay', musteri_id=teslimat.musteri_id) }}" class="btn btn-secondary me-md-2">İptal</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Teslimatı Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleSosyalMedyaFields() {
+        const teslimTuru = document.getElementById('teslim_turu').value;
+        const sosyalMedyaFields = document.getElementById('sosyalMedyaFields');
+        
+        if (teslimTuru === 'Sosyal Medya') {
+            sosyalMedyaFields.style.display = 'block';
+            // Sosyal medya alanlarını required yap
+            document.getElementById('platform').setAttribute('required', 'required');
+            document.getElementById('gonderi_turu').setAttribute('required', 'required');
+        } else {
+            sosyalMedyaFields.style.display = 'none';
+            // Required'ı kaldır
+            document.getElementById('platform').removeAttribute('required');
+            document.getElementById('gonderi_turu').removeAttribute('required');
+        }
+    }
+
+    // Sayfa yüklendiğinde kontrol et
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleSosyalMedyaFields();
+    });
+</script>
+{% endblock %}
+

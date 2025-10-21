@@ -42,3 +42,4 @@ echo 🌐 Canlı adresiniz: https://oguzhandiscioglu.pythonanywhere.com
 echo.
 pause
 
+
