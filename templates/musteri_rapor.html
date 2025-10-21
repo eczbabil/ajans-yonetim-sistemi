@@ -50,10 +50,10 @@
                         <div class="d-flex align-items-center">
                             <label class="me-3 mb-0"><strong>Dönem Filtresi:</strong></label>
                             <select id="donemFiltre" class="form-select form-select-sm me-3" style="width: auto;" onchange="filtreTipiDegisti()">
+                                <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
                                 <option value="ay" {% if filtre == 'ay' %}selected{% endif %}>Bu Ay</option>
                                 <option value="yil" {% if filtre == 'yil' %}selected{% endif %}>Bu Yıl</option>
                                 <option value="6ay" {% if filtre == '6ay' %}selected{% endif %}>Son 6 Ay</option>
-                                <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
                                 <option value="ozel" {% if filtre == 'ozel' %}selected{% endif %}>Özel Tarih Aralığı</option>
                             </select>
                             
@@ -220,7 +220,7 @@
                                     <td><strong>{{ revizyon.baslik or 'Revizyon 1' }}</strong></td>
                                     <td>
                                         {% if revizyon.is_gunlugu_id %}
-                                            {% set is = isler|selectattr('id', 'equalto', revizyon.is_gunlugu_id)|first %}
+                                            {% set is = tum_isler|selectattr('id', 'equalto', revizyon.is_gunlugu_id)|first %}
                                             {{ is.is_kodu if is else '-' }}
                                         {% else %}
                                             -
@@ -286,7 +286,7 @@
                                 <tr>
                                     <td>
                                         {% if teslimat.is_gunlugu_id %}
-                                            {% set is = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                            {% set is = tum_isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
                                             <strong>{{ is.is_kodu if is else '-' }}</strong>
                                         {% else %}
                                             -
@@ -364,7 +364,7 @@
                                 <tr>
                                     <td>
                                         {% if teslimat.is_gunlugu_id %}
-                                            {% set is = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                            {% set is = tum_isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
                                             <strong>{{ is.is_kodu if is else '-' }}</strong>
                                         {% else %}
                                             -
@@ -386,7 +386,7 @@
                                 <tr>
                                     <td>
                                         {% if sm.is_gunlugu_id %}
-                                            {% set is = isler|selectattr('id', 'equalto', sm.is_gunlugu_id)|first %}
+                                            {% set is = tum_isler|selectattr('id', 'equalto', sm.is_gunlugu_id)|first %}
                                             <strong>{{ is.is_kodu if is else '-' }}</strong>
                                         {% else %}
                                             -

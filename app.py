@@ -475,8 +475,8 @@ def musteri_rapor(musteri_id):
     
     musteri = Musteri.query.get_or_404(musteri_id)
     
-    # Filtre parametresi
-    filtre = request.args.get('filtre', 'ay')
+    # Filtre parametresi - Default: Tüm Zamanlar
+    filtre = request.args.get('filtre', 'tumu')
     today = datetime.now().date()
     
     # Tarih aralığını belirle
@@ -526,6 +526,9 @@ def musteri_rapor(musteri_id):
     isler = is_gunlugu_query.order_by(IsGunlugu.tarih.desc()).all()
     sosyal_medyalar = sosyal_medya_query.order_by(SosyalMedya.tarih.desc()).all()
     
+    # Tüm işleri de al (iş kodu gösterimi için - filtre dışı da olsa)
+    tum_isler = IsGunlugu.query.filter_by(musteri_id=musteri_id).all()
+    
     # Dashboard İstatistikleri
     # 1. Toplam çalışma saati (iş günlüğünden)
     toplam_dakika_query = db.session.query(func.sum(IsGunlugu.sure_dakika))\
@@ -560,6 +563,7 @@ def musteri_rapor(musteri_id):
                          teslimatlar=teslimatlar,
                          revizyonlar=revizyonlar,
                          isler=isler,
+                         tum_isler=tum_isler,
                          sosyal_medyalar=sosyal_medyalar,
                          filtre=filtre,
                          # Dashboard istatistikleri
