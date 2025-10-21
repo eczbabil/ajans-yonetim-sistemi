@@ -49,6 +49,11 @@ def get_dashboard_metrics(db):
         Teslimat.durum.in_(['Hazırlanıyor', 'Bekliyor', 'Revizede'])
     ).count()
     
+    # Bekleyen işler (Onayda durumundaki)
+    bekleyen_isler = db.session.query(IsGunlugu).filter(
+        IsGunlugu.durum == 'Onayda'
+    ).count()
+    
     # Bu ayki toplam çalışma saati
     bu_ay_dakika = db.session.query(func.sum(IsGunlugu.sure_dakika)).filter(
         IsGunlugu.tarih >= current_month_start.date()
@@ -62,6 +67,7 @@ def get_dashboard_metrics(db):
         'toplam_saat': toplam_saat,
         'reels_sayisi': reels_sayisi,
         'bekleyen_teslimat': bekleyen_teslimat,
+        'bekleyen_isler': bekleyen_isler,
         'bu_ay_saat': bu_ay_saat
     }
 

@@ -30,52 +30,13 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
-                            <i class="bi bi-house-door"></i> Dashboard
+                            <i class="bi bi-house-door"></i> Ana Sayfa
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'musteriler' %}active{% endif %}" href="{{ url_for('musteriler') }}">
                             <i class="bi bi-people"></i> Müşteriler
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'is_gunlugu' %}active{% endif %}" href="{{ url_for('is_gunlugu') }}">
-                            <i class="bi bi-journal-text"></i> İş Günlüğü
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'teslimatlar' %}active{% endif %}" href="{{ url_for('teslimatlar') }}">
-                            <i class="bi bi-box-seam"></i> Teslimatlar
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'sosyal_medya' %}active{% endif %}" href="{{ url_for('sosyal_medya') }}">
-                            <i class="bi bi-instagram"></i> Sosyal Medya
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'aramalar' %}active{% endif %}" href="{{ url_for('aramalar') }}">
-                            <i class="bi bi-telephone"></i> Aramalar
-                        </a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear"></i> Ayarlar
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('excel_import') }}">
-                                <i class="bi bi-file-earmark-arrow-up"></i> Excel İçe Aktar
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('excel_export') }}">
-                                <i class="bi bi-file-earmark-arrow-down"></i> Excel Dışa Aktar
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#">
-                                <i class="bi bi-info-circle"></i> Hakkında
-                            </a></li>
-                        </ul>
                     </li>
                 </ul>
             </div>
