@@ -930,7 +930,9 @@ def teslimat_duzenle(teslimat_id):
             logger.error(f"Teslimat düzenleme hatası: {str(e)}", exc_info=True)
             flash(f'Hata: {str(e)}', 'error')
     
-    return render_template('teslimat_duzenle.html', teslimat=teslimat, musteriler=musteriler)
+    # İş günlüğünü de gönder (iş kodu göstermek için)
+    isler = IsGunlugu.query.filter_by(musteri_id=teslimat.musteri_id).all()
+    return render_template('teslimat_duzenle.html', teslimat=teslimat, musteriler=musteriler, isler=isler)
 
 # Excel import/export
 @app.route('/excel_import', methods=['GET', 'POST'])

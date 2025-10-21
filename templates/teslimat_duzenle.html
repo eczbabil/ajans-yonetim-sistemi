@@ -8,7 +8,7 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('musteri.musteri_detay', musteri_id=teslimat.musteri_id) }}">Müşteri Detay</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('musteri_detay', musteri_id=teslimat.musteri_id) }}">Müşteri Detay</a></li>
                 <li class="breadcrumb-item active">Teslimat Düzenle</li>
             </ol>
         </nav>
@@ -30,8 +30,9 @@
                         {% if teslimat.is_gunlugu_id %}
                         <div class="alert alert-info">
                             <strong>İş Kodu:</strong> 
-                            {% set is_gunlugu = teslimat.is_gunlugu %}
-                            {{ is_gunlugu.is_kodu if is_gunlugu else 'Bilinmiyor' }}
+                            {% for is in isler if is.id == teslimat.is_gunlugu_id %}
+                                {{ is.is_kodu }}
+                            {% endfor %}
                         </div>
                         {% endif %}
 
