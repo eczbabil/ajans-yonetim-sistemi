@@ -358,7 +358,7 @@
                                             </button>
                                             <ul class="dropdown-menu">
                                                 <li>
-                                                    <form method="POST" action="{{ url_for('teslimat_sil', teslimat_id=teslimat.id) }}" onsubmit="return confirm('Bu teslimatı silmek istediğinizden emin misiniz?')">
+                                                    <form method="POST" action="{{ url_for('teslimat_sil', teslimat_id=teslimat.id) }}" onsubmit="return confirm('DİKKAT! Bu teslimat, ilişkili iş günlüğü ve tüm revizyonlar KALICI OLARAK silinecek!\n\nDevam etmek istediğinize emin misiniz?')">
                                                         <button type="submit" class="dropdown-item text-danger">
                                                             <i class="bi bi-trash"></i> Sil
                                                         </button>

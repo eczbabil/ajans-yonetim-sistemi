@@ -1010,19 +1010,33 @@ def teslimat_duzenle(teslimat_id):
 # Teslimat Silme
 @app.route('/teslimat_sil/<int:teslimat_id>', methods=['POST'])
 def teslimat_sil(teslimat_id):
-    """Teslimat silme"""
+    """Teslimat silme - İlişkili iş günlüğü ve revizyonları da sil"""
     try:
         teslimat = Teslimat.query.get_or_404(teslimat_id)
         musteri_id = teslimat.musteri_id
         
-        # İş kodunu bul
+        # İş günlüğünü bul
         is_gunlugu = IsGunlugu.query.get(teslimat.is_gunlugu_id) if teslimat.is_gunlugu_id else None
         is_kodu = is_gunlugu.is_kodu if is_gunlugu else 'Teslimat'
         
+        # Önce teslimatı sil
         db.session.delete(teslimat)
+        
+        # Eğer ilişkili iş günlüğü varsa, onu ve revizyonlarını da sil
+        if is_gunlugu:
+            # İlişkili revizyonları sil
+            Revizyon.query.filter_by(is_gunlugu_id=is_gunlugu.id).delete()
+            
+            # İlişkili sosyal medya kayıtlarını sil
+            SosyalMedya.query.filter_by(is_gunlugu_id=is_gunlugu.id).delete()
+            
+            # İş günlüğünü sil
+            db.session.delete(is_gunlugu)
+            logger.info(f"İş günlüğü silindi: {is_kodu}")
+        
         db.session.commit()
         
-        flash(f'{is_kodu} teslimatı silindi!', 'success')
+        flash(f'{is_kodu} teslimatı ve ilişkili iş kaydı tamamen silindi!', 'success')
     except Exception as e:
         db.session.rollback()
         logger.error(f"Teslimat silme hatası: {str(e)}", exc_info=True)
