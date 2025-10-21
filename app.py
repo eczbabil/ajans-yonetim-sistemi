@@ -541,20 +541,20 @@ def is_ekle():
             sure_dakika = int(request.form.get('sure_dakika', 0))
             toplam_dakika = (sure_saat * 60) + sure_dakika
             
-            is_gunlugu = IsGunlugu(
+        is_gunlugu = IsGunlugu(
                 is_kodu=is_kodu,
-                tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
+            tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
                 musteri_id=musteri.id,
                 proje=request.form.get('proje', ''),
-                aktivite_turu=request.form['aktivite_turu'],
-                aciklama=request.form['aciklama'],
+            aktivite_turu=request.form['aktivite_turu'],
+            aciklama=request.form['aciklama'],
                 sorumlu_kisi=request.form.get('sorumlu_kisi', ''),
                 sure_dakika=toplam_dakika,
                 etiketler=request.form.get('etiketler', ''),
                 durum='Bekliyor'
-            )
-            db.session.add(is_gunlugu)
-            db.session.commit()
+        )
+        db.session.add(is_gunlugu)
+        db.session.commit()
             logger.info(f"İş başarıyla eklendi - Kod: {is_gunlugu.is_kodu}")
             flash(f'İş günlüğü başarıyla eklendi! İş Kodu: {is_gunlugu.is_kodu}', 'success')
             
@@ -562,7 +562,7 @@ def is_ekle():
             musteri_id_param = request.args.get('musteri_id') or request.form.get('musteri_id')
             if musteri_id_param:
                 return redirect(url_for('musteri_detay', musteri_id=musteri_id_param))
-            return redirect(url_for('is_gunlugu'))
+        return redirect(url_for('is_gunlugu'))
         except Exception as e:
             db.session.rollback()
             logger.error(f"İş ekleme hatası: {str(e)}", exc_info=True)
@@ -904,7 +904,7 @@ def revizyon_ekle(musteri_id=None):
             
             # Her zaman müşteri detay sayfasına dön
             musteri_id = int(request.form['musteri_id'])
-            return redirect(url_for('musteri_detay', musteri_id=musteri_id))
+                return redirect(url_for('musteri_detay', musteri_id=musteri_id))
             
         except Exception as e:
             db.session.rollback()
@@ -1334,23 +1334,27 @@ def musteri_rapor_excel(musteri_id):
         teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
         revizyonlar_query = Revizyon.query.filter_by(musteri_id=musteri_id)
         sosyal_medya_query = SosyalMedya.query.filter_by(musteri_id=musteri_id)
+        aramalar_query = Arama.query.filter_by(musteri_id=musteri_id)
         
         if start_date:
             isler_query = isler_query.filter(IsGunlugu.tarih >= start_date)
             teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
             revizyonlar_query = revizyonlar_query.filter(Revizyon.tarih >= start_date)
             sosyal_medya_query = sosyal_medya_query.filter(SosyalMedya.tarih >= start_date)
+            aramalar_query = aramalar_query.filter(Arama.tarih >= start_date)
         
         if end_date:
             isler_query = isler_query.filter(IsGunlugu.tarih <= end_date)
             teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
             revizyonlar_query = revizyonlar_query.filter(Revizyon.tarih <= end_date)
             sosyal_medya_query = sosyal_medya_query.filter(SosyalMedya.tarih <= end_date)
+            aramalar_query = aramalar_query.filter(Arama.tarih <= end_date)
         
         isler = isler_query.order_by(IsGunlugu.tarih.desc()).all()
         teslimatlar = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).all()
         revizyonlar = revizyonlar_query.order_by(Revizyon.tarih.desc()).all()
         sosyal_medyalar = sosyal_medya_query.order_by(SosyalMedya.tarih.desc()).all()
+        aramalar = aramalar_query.order_by(Arama.tarih.desc()).all()
         
         # Excel oluştur
         output = BytesIO()
@@ -1359,12 +1363,13 @@ def musteri_rapor_excel(musteri_id):
             # Sheet 1: Özet
             ozet_data = {
                 'Metrik': ['Toplam İş', 'Toplam Teslimat', 'Toplam Revizyon', 'Toplam Sosyal Medya', 
-                          'Onaylanan Teslimat', 'Bekleyen Teslimat', 'Toplam Süre (saat)'],
+                          'Toplam Arama/Toplantı', 'Onaylanan Teslimat', 'Bekleyen Teslimat', 'Toplam Süre (saat)'],
                 'Değer': [
                     len(isler),
                     len(teslimatlar),
                     len(revizyonlar),
                     len(sosyal_medyalar),
+                    len(aramalar),
                     len([t for t in teslimatlar if t.durum in ['Tamamlandı', 'Teslim Edildi']]),
                     len([t for t in teslimatlar if t.durum == 'Hazırlanıyor']),
                     round(sum([is_item.sure_dakika or 0 for is_item in isler]) / 60, 1)
@@ -1460,6 +1465,21 @@ def musteri_rapor_excel(musteri_id):
                     'Kaynak': 'Manuel'
                 })
             pd.DataFrame(sm_data).to_excel(writer, sheet_name='Sosyal Medya', index=False)
+            
+            # Sheet 6: Aramalar / Toplantılar
+            arama_data = []
+            for arama in aramalar:
+                arama_data.append({
+                    'Tarih': arama.tarih.strftime('%d.%m.%Y') if arama.tarih else '',
+                    'Arayan/Aranan': arama.arayan_aranan or '',
+                    'Konu': arama.konu or '',
+                    'Sonuç': arama.sonuc or '',
+                    'Sorumlu': arama.sorumlu_kisi or '',
+                    'Notlar': arama.notlar or '',
+                    'Geri Dönüş Tarihi': arama.geri_donus_tarihi.strftime('%d.%m.%Y') if arama.geri_donus_tarihi else '',
+                    'Durum': arama.durum or ''
+                })
+            pd.DataFrame(arama_data).to_excel(writer, sheet_name='Aramalar', index=False)
         
         output.seek(0)
         
