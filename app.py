@@ -541,20 +541,20 @@ def is_ekle():
             sure_dakika = int(request.form.get('sure_dakika', 0))
             toplam_dakika = (sure_saat * 60) + sure_dakika
             
-        is_gunlugu = IsGunlugu(
+            is_gunlugu = IsGunlugu(
                 is_kodu=is_kodu,
-            tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
+                tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
                 musteri_id=musteri.id,
                 proje=request.form.get('proje', ''),
-            aktivite_turu=request.form['aktivite_turu'],
-            aciklama=request.form['aciklama'],
+                aktivite_turu=request.form['aktivite_turu'],
+                aciklama=request.form['aciklama'],
                 sorumlu_kisi=request.form.get('sorumlu_kisi', ''),
                 sure_dakika=toplam_dakika,
                 etiketler=request.form.get('etiketler', ''),
                 durum='Bekliyor'
-        )
-        db.session.add(is_gunlugu)
-        db.session.commit()
+            )
+            db.session.add(is_gunlugu)
+            db.session.commit()
             logger.info(f"İş başarıyla eklendi - Kod: {is_gunlugu.is_kodu}")
             flash(f'İş günlüğü başarıyla eklendi! İş Kodu: {is_gunlugu.is_kodu}', 'success')
             
@@ -562,7 +562,7 @@ def is_ekle():
             musteri_id_param = request.args.get('musteri_id') or request.form.get('musteri_id')
             if musteri_id_param:
                 return redirect(url_for('musteri_detay', musteri_id=musteri_id_param))
-        return redirect(url_for('is_gunlugu'))
+            return redirect(url_for('is_gunlugu'))
         except Exception as e:
             db.session.rollback()
             logger.error(f"İş ekleme hatası: {str(e)}", exc_info=True)
