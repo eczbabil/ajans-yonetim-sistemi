@@ -89,7 +89,7 @@ def is_onay(is_id):
         sorumlu_kisi=is_gunlugu.sorumlu_kisi,
         olusturma_tarihi=is_gunlugu.tarih,
         teslim_tarihi=date.today(),
-        durum='Hazırlanıyor',
+        durum='Tamamlandı',
         aciklama=f"İş Kodu: {is_gunlugu.is_kodu} - Otomatik oluşturuldu"
     )
     db.session.add(teslimat)
