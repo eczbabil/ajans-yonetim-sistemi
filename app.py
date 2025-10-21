@@ -904,7 +904,7 @@ def revizyon_ekle(musteri_id=None):
             
             # Her zaman müşteri detay sayfasına dön
             musteri_id = int(request.form['musteri_id'])
-                return redirect(url_for('musteri_detay', musteri_id=musteri_id))
+            return redirect(url_for('musteri_detay', musteri_id=musteri_id))
             
         except Exception as e:
             db.session.rollback()
