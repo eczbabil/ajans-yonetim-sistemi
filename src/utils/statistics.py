@@ -49,10 +49,19 @@ def get_dashboard_metrics(db):
         Teslimat.durum.in_(['Hazırlanıyor', 'Bekliyor', 'Revizede'])
     ).count()
     
-    # Bekleyen işler (Onayda durumundaki)
-    bekleyen_isler = db.session.query(IsGunlugu).filter(
-        IsGunlugu.durum == 'Onayda'
-    ).count()
+    # Bekleyen işler = Teslimatı olmayan işler
+    # Tüm işleri al
+    tum_is_idleri = db.session.query(IsGunlugu.id).all()
+    tum_is_id_set = {is_id[0] for is_id in tum_is_idleri}
+    
+    # Teslimatı olan işleri al
+    teslimatli_is_idleri = db.session.query(Teslimat.is_gunlugu_id).filter(
+        Teslimat.is_gunlugu_id.isnot(None)
+    ).distinct().all()
+    teslimatli_is_id_set = {is_id[0] for is_id in teslimatli_is_idleri}
+    
+    # Bekleyen işler = Tüm işler - Teslimatı olan işler
+    bekleyen_isler = len(tum_is_id_set - teslimatli_is_id_set)
     
     # Bu ayki toplam çalışma saati
     bu_ay_dakika = db.session.query(func.sum(IsGunlugu.sure_dakika)).filter(
