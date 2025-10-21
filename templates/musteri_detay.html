@@ -377,11 +377,20 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('teslimat_sil', teslimat_id=teslimat.id) }}" style="display:inline;" onsubmit="return confirm('Bu teslimatı silmek istediğinizden emin misiniz?')">
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-trash"></i> Sil
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                        </form>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <form method="POST" action="{{ url_for('teslimat_sil', teslimat_id=teslimat.id) }}" onsubmit="return confirm('Bu teslimatı silmek istediğinizden emin misiniz?')">
+                                                        <button type="submit" class="dropdown-item text-danger">
+                                                            <i class="bi bi-trash"></i> Sil
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -673,6 +682,105 @@ function isOnayaGonder(isId) {
 // Revizyon kaydet
 function revizyonKaydet() {
     document.getElementById('revizyonForm').submit();
+}
+
+// İş Detay Modal
+let isDetayModal;
+function isDetayAc(isId) {
+    fetch(`/api/is_detay/${isId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Modal içeriğini doldur
+            let modalHtml = `
+                <div class="modal fade" id="isDetayModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title"><i class="bi bi-file-text"></i> İş Detayı: ${data.is_kodu}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <h6 class="fw-bold mb-3">Genel Bilgiler</h6>
+                                <table class="table table-sm table-borderless">
+                                    <tr><th width="30%">Tarih:</th><td>${data.tarih}</td></tr>
+                                    <tr><th>Proje:</th><td>${data.proje}</td></tr>
+                                    <tr><th>Aktivite Türü:</th><td><span class="badge bg-info">${data.aktivite_turu}</span></td></tr>
+                                    <tr><th>Açıklama:</th><td>${data.aciklama}</td></tr>
+                                    <tr><th>Sorumlu Kişi:</th><td>${data.sorumlu_kisi}</td></tr>
+                                    <tr><th>Süre:</th><td>${data.sure_saat}s ${data.sure_dakika}dk</td></tr>
+                                    <tr><th>Etiketler:</th><td>${data.etiketler}</td></tr>
+                                    <tr><th>Durum:</th><td><span class="badge bg-${data.durum=='Onaylandı'?'success':data.durum=='Revizede'?'warning':data.durum=='Onayda'?'info':data.durum=='Reddedildi'?'danger':'secondary'}">${data.durum}</span></td></tr>
+                                </table>
+                                
+                                ${data.revizyonlar.length > 0 ? `
+                                    <hr>
+                                    <h6 class="fw-bold mb-3">Revizyonlar (${data.revizyon_sayisi})</h6>
+                                    <div class="accordion" id="revizyonAccordion">
+                                        ${data.revizyonlar.map((rev, idx) => `
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button ${idx>0?'collapsed':''}" type="button" data-bs-toggle="collapse" data-bs-target="#revizyon${idx}">
+                                                        ${rev.baslik} - <span class="badge bg-${rev.durum=='Onaylandı'?'success':rev.durum=='Tekrar Revize Geldi'?'warning':'secondary'} ms-2">${rev.durum}</span>
+                                                    </button>
+                                                </h2>
+                                                <div id="revizyon${idx}" class="accordion-collapse collapse ${idx==0?'show':''}" data-bs-parent="#revizyonAccordion">
+                                                    <div class="accordion-body">
+                                                        <p><strong>Tarih:</strong> ${rev.tarih}</p>
+                                                        <p><strong>Talep Eden:</strong> ${rev.talep_eden}</p>
+                                                        <p><strong>Konu:</strong> ${rev.konu}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                                
+                                ${data.teslimat ? `
+                                    <hr>
+                                    <h6 class="fw-bold mb-3">Teslimat Bilgileri</h6>
+                                    <table class="table table-sm table-borderless">
+                                        <tr><th width="30%">Teslim Türü:</th><td><span class="badge bg-${data.teslimat.teslim_turu=='Sosyal Medya'?'danger':'info'}">${data.teslimat.teslim_turu}</span></td></tr>
+                                        <tr><th>Durum:</th><td><span class="badge bg-${data.teslimat.durum=='Teslim Edildi'?'success':'warning'}">${data.teslimat.durum}</span></td></tr>
+                                        <tr><th>Teslim Tarihi:</th><td>${data.teslimat.teslim_tarihi || '-'}</td></tr>
+                                    </table>
+                                    ${data.teslimat.teslim_turu == 'Sosyal Medya' && data.teslimat.platform ? `
+                                        <h6 class="fw-bold mb-2 mt-3">Sosyal Medya Metrikleri</h6>
+                                        <table class="table table-sm table-borderless">
+                                            <tr><th width="30%">Platform:</th><td><span class="badge bg-info">${data.teslimat.platform}</span></td></tr>
+                                            <tr><th>Gönderi Türü:</th><td>${data.teslimat.gonderi_turu}</td></tr>
+                                            <tr><th>Etkileşim:</th><td>${data.teslimat.etkileşim}</td></tr>
+                                            <tr><th>Görüntülenme:</th><td>${data.teslimat.goruntulenme}</td></tr>
+                                            <tr><th>Beğeni:</th><td>${data.teslimat.begeni}</td></tr>
+                                            <tr><th>Yorum:</th><td>${data.teslimat.yorum}</td></tr>
+                                            <tr><th>Paylaşım:</th><td>${data.teslimat.paylasim}</td></tr>
+                                        </table>
+                                    ` : ''}
+                                ` : ''}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                                <a href="/is_duzenle/${isId}" class="btn btn-primary"><i class="bi bi-pencil"></i> Düzenle</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Eski modalı kaldır
+            const oldModal = document.getElementById('isDetayModal');
+            if (oldModal) oldModal.remove();
+            
+            // Yeni modalı ekle
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Bootstrap modal aç
+            isDetayModal = new bootstrap.Modal(document.getElementById('isDetayModal'));
+            isDetayModal.show();
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            alert('İş detayı yüklenirken hata oluştu!');
+        });
 }
 </script>
 {% endblock %}

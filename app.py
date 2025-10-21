@@ -93,6 +93,7 @@ class SosyalMedya(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tarih = db.Column(db.Date, nullable=False)
     musteri_id = db.Column(db.Integer, db.ForeignKey('musteri.id'))
+    is_gunlugu_id = db.Column(db.Integer, db.ForeignKey('is_gunlugu.id'), nullable=True)  # İş ile ilişki
     platform = db.Column(db.String(50))
     icerik_basligi = db.Column(db.String(100))
     gonderi_turu = db.Column(db.String(20))
@@ -584,10 +585,15 @@ def sosyal_medya():
 @app.route('/sosyal_medya_ekle/<int:musteri_id>', methods=['GET', 'POST'])
 def sosyal_medya_ekle(musteri_id=None):
     musteriler = Musteri.query.all()
+    isler = IsGunlugu.query.filter_by(musteri_id=musteri_id).all() if musteri_id else []
+    
     if request.method == 'POST':
+        is_gunlugu_id = int(request.form['is_gunlugu_id']) if request.form.get('is_gunlugu_id') else None
+        
         sosyal = SosyalMedya(
             tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
             musteri_id=int(request.form['musteri_id']),
+            is_gunlugu_id=is_gunlugu_id,
             platform=request.form['platform'],
             icerik_basligi=request.form['icerik_basligi'],
             gonderi_turu=request.form['gonderi_turu'],
@@ -600,12 +606,19 @@ def sosyal_medya_ekle(musteri_id=None):
         )
         db.session.add(sosyal)
         db.session.commit()
-        flash('Sosyal medya kaydı başarıyla eklendi!')
+        
+        # İş kodu ile flash mesajı
+        if is_gunlugu_id:
+            is_gunlugu = IsGunlugu.query.get(is_gunlugu_id)
+            flash(f'Sosyal medya kaydı başarıyla eklendi! ({is_gunlugu.is_kodu if is_gunlugu else ""})', 'success')
+        else:
+            flash('Sosyal medya kaydı başarıyla eklendi!', 'success')
+        
         if musteri_id:
             return redirect(url_for('musteri_detay', musteri_id=musteri_id))
         return redirect(url_for('sosyal_medya'))
 
-    return render_template('sosyal_medya_ekle.html', musteriler=musteriler, secili_musteri_id=musteri_id)
+    return render_template('sosyal_medya_ekle.html', musteriler=musteriler, isler=isler, secili_musteri_id=musteri_id)
 
 # API endpoint - İş detayı getir
 @app.route('/api/is_detay/<int:is_id>')

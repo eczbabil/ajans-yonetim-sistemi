@@ -29,7 +29,7 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="musteri_id" class="form-label">Müşteri *</label>
-                                    <select class="form-control" id="musteri_id" name="musteri_id" required>
+                                    <select class="form-control" id="musteri_id" name="musteri_id" required onchange="musteriSecildi()">
                                         <option value="">Müşteri seçin...</option>
                                         {% for musteri in musteriler %}
                                         <option value="{{ musteri.id }}" {% if secili_musteri_id == musteri.id %}selected{% endif %}>
@@ -42,6 +42,17 @@
                                     <label for="tarih" class="form-label">Tarih *</label>
                                     <input type="date" class="form-control" id="tarih" name="tarih" required>
                                 </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="is_gunlugu_id" class="form-label">İş Seçin (Opsiyonel - İş kodu ile takip için)</label>
+                                <select class="form-control" id="is_gunlugu_id" name="is_gunlugu_id">
+                                    <option value="">İş seçmeyin (bağımsız kayıt)</option>
+                                    {% for is in isler %}
+                                    <option value="{{ is.id }}">{{ is.is_kodu }} - {{ is.aciklama[:50] if is.aciklama else is.proje }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Bir iş ile ilişkilendirmek isterseniz seçin, yoksa boş bırakın</small>
                             </div>
 
                             <div class="row mb-3">
@@ -130,5 +141,14 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('tarih').value = today;
     });
+    
+    // Müşteri seçildiğinde işleri yükle
+    function musteriSecildi() {
+        const musteriId = document.getElementById('musteri_id').value;
+        if (musteriId) {
+            // Sayfayı yenile (işleri yüklemek için)
+            window.location.href = `/sosyal_medya_ekle/${musteriId}`;
+        }
+    }
 </script>
 {% endblock %}
