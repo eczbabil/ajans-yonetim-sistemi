@@ -292,7 +292,7 @@
                                         </button>
                                         {% endif %}
                                         {% if is.durum in ['Bekliyor', 'Revizede', 'Onayda', 'Onaylandı', 'Reddedildi'] %}
-                                        <a href="{{ url_for('is_gunlugu.is_duzenle', is_id=is.id) }}" class="btn btn-sm btn-secondary">
+                                        <a href="{{ url_for('is_duzenle', is_id=is.id) }}" class="btn btn-sm btn-secondary">
                                             <i class="bi bi-pencil"></i> Düzenle
                                         </a>
                                         {% endif %}
