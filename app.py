@@ -380,20 +380,24 @@ def musteri_rapor(musteri_id):
     teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
     revizyon_query = Revizyon.query.filter_by(musteri_id=musteri_id)
     is_gunlugu_query = IsGunlugu.query.filter_by(musteri_id=musteri_id)
+    sosyal_medya_query = SosyalMedya.query.filter_by(musteri_id=musteri_id)
     
     if start_date:
         teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
         revizyon_query = revizyon_query.filter(Revizyon.tarih >= start_date)
         is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih >= start_date)
+        sosyal_medya_query = sosyal_medya_query.filter(SosyalMedya.tarih >= start_date)
     
     if end_date:
         teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
         revizyon_query = revizyon_query.filter(Revizyon.tarih <= end_date)
         is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih <= end_date)
+        sosyal_medya_query = sosyal_medya_query.filter(SosyalMedya.tarih <= end_date)
     
     teslimatlar = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).all()
     revizyonlar = revizyon_query.order_by(Revizyon.tarih.desc()).all()
     isler = is_gunlugu_query.order_by(IsGunlugu.tarih.desc()).all()
+    sosyal_medyalar = sosyal_medya_query.order_by(SosyalMedya.tarih.desc()).all()
     
     # Dashboard İstatistikleri
     # 1. Toplam çalışma saati (iş günlüğünden)
@@ -429,6 +433,7 @@ def musteri_rapor(musteri_id):
                          teslimatlar=teslimatlar,
                          revizyonlar=revizyonlar,
                          isler=isler,
+                         sosyal_medyalar=sosyal_medyalar,
                          filtre=filtre,
                          # Dashboard istatistikleri
                          toplam_saat=toplam_saat,

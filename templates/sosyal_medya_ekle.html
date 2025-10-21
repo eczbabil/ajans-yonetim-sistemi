@@ -45,14 +45,14 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="is_gunlugu_id" class="form-label">İş Seçin (Opsiyonel - İş kodu ile takip için)</label>
-                                <select class="form-control" id="is_gunlugu_id" name="is_gunlugu_id">
-                                    <option value="">İş seçmeyin (bağımsız kayıt)</option>
+                                <label for="is_gunlugu_id" class="form-label">İş Seçin (Zorunlu - İş kodu ile takip) *</label>
+                                <select class="form-control" id="is_gunlugu_id" name="is_gunlugu_id" required>
+                                    <option value="">İş seçin...</option>
                                     {% for is in isler %}
                                     <option value="{{ is.id }}">{{ is.is_kodu }} - {{ is.aciklama[:50] if is.aciklama else is.proje }}</option>
                                     {% endfor %}
                                 </select>
-                                <small class="text-muted">Bir iş ile ilişkilendirmek isterseniz seçin, yoksa boş bırakın</small>
+                                <small class="text-muted">Her sosyal medya postu bir işe bağlı olmalıdır</small>
                             </div>
 
                             <div class="row mb-3">

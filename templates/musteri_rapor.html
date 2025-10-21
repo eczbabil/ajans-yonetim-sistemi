@@ -290,12 +290,12 @@
 
     <!-- Sosyal Medya Performans Raporu -->
     {% set sosyal_medya_teslimatlari = teslimatlar|selectattr('teslim_turu', 'equalto', 'Sosyal Medya')|list %}
-    {% if sosyal_medya_teslimatlari %}
+    {% if sosyal_medya_teslimatlari or sosyal_medyalar %}
     <div class="row mb-4">
         <div class="col">
             <div class="card">
                 <div class="card-header bg-danger text-white">
-                    <h5><i class="bi bi-share"></i> Sosyal Medya Performans Raporu</h5>
+                    <h5><i class="bi bi-share"></i> Sosyal Medya Performans Raporu ({{ (sosyal_medya_teslimatlari|length) + (sosyal_medyalar|length) }})</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -303,6 +303,7 @@
                             <thead>
                                 <tr>
                                     <th>İş Kodu</th>
+                                    <th>Tarih</th>
                                     <th>Platform</th>
                                     <th>Gönderi Türü</th>
                                     <th>Etkileşim</th>
@@ -310,6 +311,7 @@
                                     <th>Beğeni</th>
                                     <th>Yorum</th>
                                     <th>Paylaşım</th>
+                                    <th>Kaynak</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -323,6 +325,7 @@
                                             -
                                         {% endif %}
                                     </td>
+                                    <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
                                     <td><span class="badge bg-info">{{ teslimat.platform or '-' }}</span></td>
                                     <td>{{ teslimat.gonderi_turu or '-' }}</td>
                                     <td>{{ teslimat.etkileşim or 0 }}</td>
@@ -330,17 +333,41 @@
                                     <td>{{ teslimat.begeni or 0 }}</td>
                                     <td>{{ teslimat.yorum or 0 }}</td>
                                     <td>{{ teslimat.paylasim or 0 }}</td>
+                                    <td><span class="badge bg-success">Teslimat</span></td>
+                                </tr>
+                                {% endfor %}
+                                
+                                {% for sm in sosyal_medyalar %}
+                                <tr>
+                                    <td>
+                                        {% if sm.is_gunlugu_id %}
+                                            {% set is = isler|selectattr('id', 'equalto', sm.is_gunlugu_id)|first %}
+                                            <strong>{{ is.is_kodu if is else '-' }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ sm.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td><span class="badge bg-info">{{ sm.platform or '-' }}</span></td>
+                                    <td>{{ sm.gonderi_turu or '-' }}</td>
+                                    <td>{{ sm.etkileşim or 0 }}</td>
+                                    <td>{{ sm.goruntulenme or 0 }}</td>
+                                    <td>{{ sm.begeni or 0 }}</td>
+                                    <td>{{ sm.yorum or 0 }}</td>
+                                    <td>{{ sm.paylasim or 0 }}</td>
+                                    <td><span class="badge bg-primary">Manuel</span></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
-                                    <th colspan="3">TOPLAM</th>
-                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='etkileşim') or 0 }}</th>
-                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='goruntulenme') or 0 }}</th>
-                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='begeni') or 0 }}</th>
-                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='yorum') or 0 }}</th>
-                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='paylasim') or 0 }}</th>
+                                    <th colspan="4">TOPLAM</th>
+                                    <th>{{ (sosyal_medya_teslimatlari|sum(attribute='etkileşim') or 0) + (sosyal_medyalar|sum(attribute='etkileşim') or 0) }}</th>
+                                    <th>{{ (sosyal_medya_teslimatlari|sum(attribute='goruntulenme') or 0) + (sosyal_medyalar|sum(attribute='goruntulenme') or 0) }}</th>
+                                    <th>{{ (sosyal_medya_teslimatlari|sum(attribute='begeni') or 0) + (sosyal_medyalar|sum(attribute='begeni') or 0) }}</th>
+                                    <th>{{ (sosyal_medya_teslimatlari|sum(attribute='yorum') or 0) + (sosyal_medyalar|sum(attribute='yorum') or 0) }}</th>
+                                    <th>{{ (sosyal_medya_teslimatlari|sum(attribute='paylasim') or 0) + (sosyal_medyalar|sum(attribute='paylasim') or 0) }}</th>
+                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>
