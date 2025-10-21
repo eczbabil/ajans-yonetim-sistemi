@@ -607,6 +607,54 @@ def sosyal_medya_ekle(musteri_id=None):
 
     return render_template('sosyal_medya_ekle.html', musteriler=musteriler, secili_musteri_id=musteri_id)
 
+# API endpoint - İş detayı getir
+@app.route('/api/is_detay/<int:is_id>')
+def api_is_detay(is_id):
+    """İş detayı JSON olarak döndür"""
+    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+    
+    # Revizyonları çek
+    revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi).all()
+    
+    # Teslimatı çek
+    teslimat = Teslimat.query.filter_by(is_gunlugu_id=is_id).first()
+    
+    result = {
+        'is_kodu': is_gunlugu.is_kodu,
+        'tarih': is_gunlugu.tarih.strftime('%d.%m.%Y'),
+        'proje': is_gunlugu.proje or '-',
+        'aktivite_turu': is_gunlugu.aktivite_turu or '-',
+        'aciklama': is_gunlugu.aciklama or '-',
+        'sorumlu_kisi': is_gunlugu.sorumlu_kisi or '-',
+        'sure_saat': (is_gunlugu.sure_dakika // 60) if is_gunlugu.sure_dakika else 0,
+        'sure_dakika': (is_gunlugu.sure_dakika % 60) if is_gunlugu.sure_dakika else 0,
+        'etiketler': is_gunlugu.etiketler or '-',
+        'durum': is_gunlugu.durum or 'Bekliyor',
+        'revizyon_sayisi': is_gunlugu.revizyon_sayisi or 0,
+        'revizyonlar': [{
+            'baslik': rev.baslik,
+            'tarih': rev.tarih.strftime('%d.%m.%Y'),
+            'talep_eden': rev.revize_talep_eden,
+            'konu': rev.revize_konusu,
+            'durum': rev.durum
+        } for rev in revizyonlar],
+        'teslimat': {
+            'var': teslimat is not None,
+            'teslim_turu': teslimat.teslim_turu if teslimat else None,
+            'durum': teslimat.durum if teslimat else None,
+            'teslim_tarihi': teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat and teslimat.teslim_tarihi else None,
+            'platform': teslimat.platform if teslimat else None,
+            'gonderi_turu': teslimat.gonderi_turu if teslimat else None,
+            'etkileşim': teslimat.etkileşim if teslimat else 0,
+            'goruntulenme': teslimat.goruntulenme if teslimat else 0,
+            'begeni': teslimat.begeni if teslimat else 0,
+            'yorum': teslimat.yorum if teslimat else 0,
+            'paylasim': teslimat.paylasim if teslimat else 0
+        } if teslimat else None
+    }
+    
+    return jsonify(result)
+
 # API endpoint - Müşteriye göre teslimatları getir
 @app.route('/api/teslimatlar/<int:musteri_id>')
 def api_teslimatlar(musteri_id):
@@ -912,6 +960,29 @@ def teslimat_duzenle(teslimat_id):
     # İş günlüğünü de gönder (iş kodu göstermek için)
     isler = IsGunlugu.query.filter_by(musteri_id=teslimat.musteri_id).all()
     return render_template('teslimat_duzenle.html', teslimat=teslimat, musteriler=musteriler, isler=isler)
+
+# Teslimat Silme
+@app.route('/teslimat_sil/<int:teslimat_id>', methods=['POST'])
+def teslimat_sil(teslimat_id):
+    """Teslimat silme"""
+    try:
+        teslimat = Teslimat.query.get_or_404(teslimat_id)
+        musteri_id = teslimat.musteri_id
+        
+        # İş kodunu bul
+        is_gunlugu = IsGunlugu.query.get(teslimat.is_gunlugu_id) if teslimat.is_gunlugu_id else None
+        is_kodu = is_gunlugu.is_kodu if is_gunlugu else 'Teslimat'
+        
+        db.session.delete(teslimat)
+        db.session.commit()
+        
+        flash(f'{is_kodu} teslimatı silindi!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Teslimat silme hatası: {str(e)}", exc_info=True)
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('musteri_detay', musteri_id=musteri_id))
 
 # Excel import/export
 @app.route('/excel_import', methods=['GET', 'POST'])
