@@ -242,6 +242,49 @@ def musteriler():
     musteriler = Musteri.query.all()
     return render_template('musteriler.html', musteriler=musteriler)
 
+# Müşteri Silme
+@app.route('/musteri_sil/<int:musteri_id>', methods=['POST'])
+def musteri_sil(musteri_id):
+    """Müşteri silme - İlişkili tüm kayıtları da sil (cascade)"""
+    try:
+        musteri = Musteri.query.get_or_404(musteri_id)
+        musteri_adi = musteri.ad
+        
+        # İlişkili tüm kayıtları sil
+        # 1. İş günlüğü kayıtlarını al
+        isler = IsGunlugu.query.filter_by(musteri_id=musteri_id).all()
+        
+        for is_item in isler:
+            # Her iş için revizyonları sil
+            Revizyon.query.filter_by(is_gunlugu_id=is_item.id).delete()
+            # Her iş için sosyal medya kayıtlarını sil
+            SosyalMedya.query.filter_by(is_gunlugu_id=is_item.id).delete()
+        
+        # 2. İş günlüğü kayıtlarını sil
+        IsGunlugu.query.filter_by(musteri_id=musteri_id).delete()
+        
+        # 3. Teslimatları sil
+        Teslimat.query.filter_by(musteri_id=musteri_id).delete()
+        
+        # 4. Revizyonları sil (eğer kaldıysa)
+        Revizyon.query.filter_by(musteri_id=musteri_id).delete()
+        
+        # 5. Aramaları sil
+        Arama.query.filter_by(musteri_id=musteri_id).delete()
+        
+        # 6. Müşteriyi sil
+        db.session.delete(musteri)
+        db.session.commit()
+        
+        flash(f'{musteri_adi} ve tüm ilişkili kayıtlar başarıyla silindi!', 'success')
+        logger.info(f"Müşteri silindi: {musteri_adi} (ID: {musteri_id})")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Müşteri silme hatası: {str(e)}", exc_info=True)
+        flash(f'Hata: {str(e)}', 'error')
+    
+    return redirect(url_for('musteriler'))
+
 # Bekleyen İşler Sayfası
 @app.route('/bekleyen_isler')
 def bekleyen_isler():

@@ -137,15 +137,41 @@
                                     <th>Arayan</th>
                                     <th>Konu</th>
                                     <th>Notlar</th>
+                                    <th>İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for arama in aramalar %}
                                 <tr>
                                     <td>{{ arama.tarih.strftime('%d.%m.%Y %H:%M') if arama.tarih else '-' }}</td>
-                                    <td>{{ arama.arayan or '-' }}</td>
-                                    <td>{{ arama.konu or '-' }}</td>
-                                    <td>{{ arama.notlar[:50] if arama.notlar else '-' }}...</td>
+                                    <td>{{ arama.arayan_aranan or '-' }}</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 200px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ arama.konu if arama.konu else '-' }}"
+                                              title="Konu">
+                                            {{ arama.konu[:40] if arama.konu else '-' }}{% if arama.konu and arama.konu|length > 40 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 200px; cursor: pointer;" 
+                                              data-bs-toggle="popover" 
+                                              data-bs-trigger="click" 
+                                              data-bs-placement="top" 
+                                              data-bs-content="{{ arama.notlar if arama.notlar else '-' }}"
+                                              title="Notlar">
+                                            {{ arama.notlar[:40] if arama.notlar else '-' }}{% if arama.notlar and arama.notlar|length > 40 %}...{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('arama_sil', arama_id=arama.id) }}" style="display:inline;" onsubmit="return confirm('Bu aramayı silmek istediğinize emin misiniz?')">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Sil
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

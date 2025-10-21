@@ -80,7 +80,11 @@
                                         </td>
                                         <td>
                                             <a href="{{ url_for('musteri_detay', musteri_id=musteri.id) }}" class="btn btn-sm btn-info">Detay</a>
-                                            <button class="btn btn-sm btn-danger">Sil</button>
+                                            <form method="POST" action="{{ url_for('musteri_sil', musteri_id=musteri.id) }}" style="display:inline;" onsubmit="return confirm('DİKKAT! {{ musteri.ad }} ve TÜM ilişkili kayıtlar (işler, teslimatlar, revizyonlar, aramalar) KALICI OLARAK silinecek!\n\nBu işlem GERİ ALINAMAZ!\n\nDevam etmek istediğinize emin misiniz?')">
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="bi bi-trash"></i> Sil
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     {% endfor %}
