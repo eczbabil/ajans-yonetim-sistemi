@@ -54,9 +54,9 @@
             <div class="kpi-card warning" style="padding: 3rem;">
                 <h3><i class="bi bi-clock-history"></i> Bekleyen İşler</h3>
                 <div class="value" style="font-size: 4rem; margin: 1rem 0;">{{ metrics.bekleyen_isler }}</div>
-                <div class="subtitle" style="font-size: 1.2rem;">Onay bekleyen iş sayısı</div>
+                <div class="subtitle" style="font-size: 1.2rem;">Teslimatı olmayan işler</div>
                 <div class="mt-3">
-                    <a href="{{ url_for('musteriler') }}" class="btn btn-light btn-lg">
+                    <a href="{{ url_for('bekleyen_isler') }}" class="btn btn-light btn-lg">
                         <i class="bi bi-arrow-right"></i> Bekleyen İşleri Gör
                     </a>
                 </div>

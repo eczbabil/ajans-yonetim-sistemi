@@ -242,6 +242,34 @@ def musteriler():
     musteriler = Musteri.query.all()
     return render_template('musteriler.html', musteriler=musteriler)
 
+# Bekleyen İşler Sayfası
+@app.route('/bekleyen_isler')
+def bekleyen_isler():
+    # Sayfa numarası (pagination)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20  # Her sayfada 20 iş
+    
+    # Teslimatı olmayan işleri bul
+    # İş Günlüğü'nden teslimatı olmayan işleri al
+    subquery = db.session.query(Teslimat.is_gunlugu_id).filter(
+        Teslimat.is_gunlugu_id.isnot(None)
+    ).distinct().subquery()
+    
+    bekleyen_isler_query = IsGunlugu.query.filter(
+        ~IsGunlugu.id.in_(db.session.query(subquery))
+    ).order_by(IsGunlugu.tarih.desc())
+    
+    # Pagination uygula
+    pagination = bekleyen_isler_query.paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False
+    )
+    
+    return render_template('bekleyen_isler.html',
+                         isler=pagination.items,
+                         pagination=pagination)
+
 # Müşteri detay sayfası
 @app.route('/musteri_detay/<int:musteri_id>')
 def musteri_detay(musteri_id):
