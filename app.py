@@ -374,7 +374,6 @@ def bekleyen_isler():
 # Müşteri detay sayfası
 @app.route('/musteri_detay/<int:musteri_id>')
 def musteri_detay(musteri_id):
-    from src.utils.statistics import get_musteri_metrikleri
     from datetime import datetime, timedelta
     from sqlalchemy import func
     
@@ -387,44 +386,14 @@ def musteri_detay(musteri_id):
     arama_page = request.args.get('arama_page', 1, type=int)
     per_page = 20  # Her sayfada 20 kayıt
     
-    # Filtre parametresi
-    filtre = request.args.get('filtre', 'ay')
-    today = datetime.now().date()
+    # Müşteri detay sayfasında filtre YOK - TÜM verileri göster
+    # (Raporlar sayfasında filtre var, orada kullanılıyor)
     
-    # Tarih aralığını belirle
-    if filtre == 'ay':
-        start_date = datetime(today.year, today.month, 1).date()
-        end_date = None
-    elif filtre == 'yil':
-        start_date = datetime(today.year, 1, 1).date()
-        end_date = None
-    elif filtre == '6ay':
-        start_date = today - timedelta(days=180)
-        end_date = None
-    else:  # 'tumu'
-        start_date = None
-        end_date = None
-    
-    # Metrikleri hesapla
-    metrikler = get_musteri_metrikleri(db, musteri_id, start_date, end_date)
-    
-    # Teslimatlar, sosyal medya, revizyonlar - filtreye göre
+    # Teslimatlar, sosyal medya, revizyonlar - FİLTRESİZ
     teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
     sosyal_query = SosyalMedya.query.filter_by(musteri_id=musteri_id)
     revizyon_query = Revizyon.query.filter_by(musteri_id=musteri_id)
     is_gunlugu_query = IsGunlugu.query.filter_by(musteri_id=musteri_id)
-    
-    if start_date:
-        teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
-        sosyal_query = sosyal_query.filter(SosyalMedya.tarih >= start_date)
-        revizyon_query = revizyon_query.filter(Revizyon.tarih >= start_date)
-        is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih >= start_date)
-    
-    if end_date:
-        teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
-        sosyal_query = sosyal_query.filter(SosyalMedya.tarih <= end_date)
-        revizyon_query = revizyon_query.filter(Revizyon.tarih <= end_date)
-        is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih <= end_date)
     
     # Pagination uygula
     teslimatlar_pagination = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).paginate(
@@ -441,13 +410,9 @@ def musteri_detay(musteri_id):
     # Sosyal medya ve aramalar - sayfalama yok (genelde az veri)
     sosyal_medyalar = sosyal_query.order_by(SosyalMedya.tarih.desc()).all()
     
-    # Aramalar
+    # Aramalar - FİLTRESİZ
     try:
         aramalar_query = Arama.query.filter_by(musteri_id=musteri_id)
-        if start_date:
-            aramalar_query = aramalar_query.filter(Arama.tarih >= start_date)
-        if end_date:
-            aramalar_query = aramalar_query.filter(Arama.tarih <= end_date)
         aramalar_pagination = aramalar_query.order_by(Arama.tarih.desc()).paginate(
             page=arama_page, per_page=per_page, error_out=False)
         aramalar = aramalar_pagination.items
@@ -455,13 +420,9 @@ def musteri_detay(musteri_id):
         aramalar = []
         aramalar_pagination = None
     
-    # Onayda bekleyen işler - sayfalama yok (genelde az veri)
-    onayda_bekleyenler_query = IsGunlugu.query.filter_by(musteri_id=musteri_id, durum='Onayda')
-    if start_date:
-        onayda_bekleyenler_query = onayda_bekleyenler_query.filter(IsGunlugu.tarih >= start_date)
-    if end_date:
-        onayda_bekleyenler_query = onayda_bekleyenler_query.filter(IsGunlugu.tarih <= end_date)
-    onayda_bekleyenler = onayda_bekleyenler_query.order_by(IsGunlugu.tarih.desc()).all()
+    # Onayda bekleyen işler - FİLTRESİZ
+    onayda_bekleyenler = IsGunlugu.query.filter_by(musteri_id=musteri_id, durum='Onayda')\
+        .order_by(IsGunlugu.tarih.desc()).all()
     
     # Revizyon sayısı artık her iş için ayrı takip ediliyor (is_gunlugu.revizyon_sayisi)
     
@@ -498,8 +459,6 @@ def musteri_detay(musteri_id):
                          onayda_bekleyenler=onayda_bekleyenler,
                          aramalar=aramalar,
                          aramalar_pagination=aramalar_pagination,
-                         metrikler=metrikler,
-                         filtre=filtre,
                          # Dashboard istatistikleri
                          toplam_saat=toplam_saat,
                          onaylanan_teslimatlar=onaylanan_teslimatlar,
