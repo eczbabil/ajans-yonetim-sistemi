@@ -204,7 +204,8 @@
                                     <td>
                                         <span class="badge 
                                             {% if revizyon.durum == 'Onaylandı' %}bg-success
-                                            {% elif revizyon.durum == 'Tekrar Revize Geldi' %}bg-warning
+                                            {% elif revizyon.durum == 'Tekrar Revize Geldi' %}bg-secondary
+                                            {% elif revizyon.durum == 'Tekrar Revizeye Gitti' %}bg-secondary
                                             {% elif revizyon.durum == 'Reddedildi' %}bg-danger
                                             {% else %}bg-secondary{% endif %}">
                                             {{ revizyon.durum or 'Bekliyor' }}
@@ -236,7 +237,6 @@
                         <table class="table table-hover table-sm">
                             <thead>
                                 <tr>
-                                    <th>Teslimat Kodu</th>
                                     <th>İş Kodu</th>
                                     <th>Başlık</th>
                                     <th>Teslim Türü</th>
@@ -247,11 +247,10 @@
                             <tbody>
                                 {% for teslimat in teslimatlar %}
                                 <tr>
-                                    <td><strong>{{ teslimat.teslimat_kodu }}</strong></td>
                                     <td>
                                         {% if teslimat.is_gunlugu_id %}
                                             {% set is = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
-                                            {{ is.is_kodu if is else '-' }}
+                                            <strong>{{ is.is_kodu if is else '-' }}</strong>
                                         {% else %}
                                             -
                                         {% endif %}

@@ -405,67 +405,12 @@
         </div>
     </div>
 
-    <!-- Sosyal Medya Tablosu -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5><i class="bi bi-instagram"></i> Sosyal Medya Performansı</h5>
-                    <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus"></i> Yeni Gönderi
-                    </a>
-                </div>
-                <div class="card-body">
-                    {% if sosyal_medyalar %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Tarih</th>
-                                    <th>Platform</th>
-                                    <th>İçerik</th>
-                                    <th>Tür</th>
-                                    <th>Görüntülenme</th>
-                                    <th>Beğeni</th>
-                                    <th>Durum</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for sosyal in sosyal_medyalar %}
-                                <tr>
-                                    <td>{{ sosyal.tarih.strftime('%d.%m.%Y') }}</td>
-                                    <td>{{ sosyal.platform }}</td>
-                                    <td>{{ sosyal.icerik_basligi }}</td>
-                                    <td>{{ sosyal.gonderi_turu }}</td>
-                                    <td>{{ sosyal.goruntulenme }}</td>
-                                    <td>{{ sosyal.begeni }}</td>
-                                    <td>
-                                        <span class="badge {% if sosyal.durum == 'Yayınlandı' %}bg-success{% else %}bg-secondary{% endif %}">
-                                            {{ sosyal.durum }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-center text-muted">Henüz sosyal medya verisi bulunmuyor.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Revizyonlar Tablosu -->
     <div class="row mb-4">
         <div class="col">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h5><i class="bi bi-arrow-repeat"></i> Revizyonlar</h5>
-                    <a href="{{ url_for('revizyon_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus"></i> Yeni Revizyon
-                    </a>
                 </div>
                 <div class="card-body">
                     {% if revizyonlar %}
@@ -503,7 +448,8 @@
                                     <td>
                                         <span class="badge 
                                             {% if revizyon.durum == 'Onaylandı' %}bg-success
-                                            {% elif revizyon.durum == 'Tekrar Revizeye Gitti' %}bg-warning
+                                            {% elif revizyon.durum == 'Tekrar Revizeye Gitti' %}bg-secondary
+                                            {% elif revizyon.durum == 'Tekrar Revize Geldi' %}bg-secondary
                                             {% elif revizyon.durum == 'Reddedildi' %}bg-danger
                                             {% else %}bg-secondary{% endif %}">
                                             {{ revizyon.durum }}
