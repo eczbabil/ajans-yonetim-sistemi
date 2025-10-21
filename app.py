@@ -668,9 +668,12 @@ def is_onaya_gonder(is_id):
 
 @app.route('/is_onay/<int:is_id>', methods=['POST'])
 def is_onay(is_id):
-    """İşi onayla"""
+    """İşi onayla ve otomatik teslimat oluştur"""
     try:
         is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+        musteri = Musteri.query.get(is_gunlugu.musteri_id)
+        
+        # İş durumunu onaylandı yap
         is_gunlugu.durum = 'Onaylandı'
         
         # Sadece SON revizyonu "Onaylandı" yap
@@ -678,14 +681,46 @@ def is_onay(is_id):
         if son_revizyon:
             son_revizyon.durum = 'Onaylandı'
         
+        # Teslimat kodu oluştur
+        son_teslimat = Teslimat.query.filter_by(musteri_id=musteri.id)\
+            .order_by(Teslimat.id.desc()).first()
+        
+        if son_teslimat and son_teslimat.teslimat_kodu:
+            parts = son_teslimat.teslimat_kodu.split('-')
+            if len(parts) == 3:
+                son_numara = int(parts[2])
+                yeni_numara = son_numara + 1
+            else:
+                yeni_numara = 1
+        else:
+            yeni_numara = 1
+        
+        musteri_kodu_sayi = musteri.musteri_kodu.replace('MST-', '').replace('MST', '')
+        teslimat_kodu = f"TSL-MST{musteri_kodu_sayi}-{yeni_numara:03d}"
+        
+        # Otomatik teslimat oluştur
+        teslimat = Teslimat(
+            teslimat_kodu=teslimat_kodu,
+            is_gunlugu_id=is_id,
+            musteri_id=is_gunlugu.musteri_id,
+            baslik=is_gunlugu.aciklama or is_gunlugu.proje,
+            proje=is_gunlugu.proje,
+            sorumlu_kisi=is_gunlugu.sorumlu_kisi,
+            olusturma_tarihi=is_gunlugu.tarih,
+            teslim_tarihi=date.today(),
+            durum='Hazırlanıyor',
+            aciklama=f"İş Kodu: {is_gunlugu.is_kodu} - Otomatik oluşturuldu"
+        )
+        db.session.add(teslimat)
         db.session.commit()
-        flash(f'{is_gunlugu.is_kodu} onaylandı!', 'success')
+        
+        flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu ({teslimat_kodu})!', 'success')
+        return redirect(url_for('teslimat_duzenle', teslimat_id=teslimat.id))
     except Exception as e:
         db.session.rollback()
         logger.error(f"İş onay hatası: {str(e)}", exc_info=True)
         flash(f'Hata: {str(e)}', 'error')
-    
-    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
+        return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
 
 @app.route('/is_red/<int:is_id>', methods=['POST'])
 def is_red(is_id):
@@ -746,11 +781,18 @@ def revizyon_ekle(musteri_id=None):
             
             is_gunlugu_id = int(request.form['is_gunlugu_id']) if request.form.get('is_gunlugu_id') else None
             
-            # Eğer iş günlüğü ID'si varsa, iş durumunu ve revizyon sayısını güncelle
+            # Önceki revizyonun durumunu "Tekrar Revize Geldi" yap
             revizyon_numarasi = 1
             baslik = "Revizyon 1"
             
             if is_gunlugu_id:
+                # Önceki revizyonu bul ve durumunu güncelle
+                onceki_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_gunlugu_id)\
+                    .order_by(Revizyon.revizyon_numarasi.desc()).first()
+                if onceki_revizyon:
+                    onceki_revizyon.durum = 'Tekrar Revize Geldi'
+                
+                # İş günlüğü durumunu ve revizyon sayısını güncelle
                 is_gunlugu = IsGunlugu.query.get(is_gunlugu_id)
                 if is_gunlugu:
                     # İş durumunu Revizede yap
@@ -796,61 +838,7 @@ def revizyon_ekle(musteri_id=None):
                          isler=isler,
                          secili_musteri_id=musteri_id)
 
-# Excel import/export
-# İş Günlüğü Route'ları
-@app.route('/is_gunlugu')
-def is_gunlugu():
-    """İş günlüğü listesi"""
-    isler = IsGunlugu.query.all()
-    return render_template('is_gunlugu.html', isler=isler)
-
-@app.route('/is_ekle', methods=['GET', 'POST'])
-def is_ekle():
-    """İş günlüğü ekleme"""
-    musteri_id = request.args.get('musteri_id')
-    musteriler = Musteri.query.all()
-    
-    if request.method == 'POST':
-        try:
-            musteri = Musteri.query.get(int(request.form['musteri_id']))
-            
-            # İş kodu oluştur
-            is_kodu = generate_is_kodu(musteri)
-            
-            # Saat ve dakikayı toplam dakikaya çevir
-            sure_saat = int(request.form.get('sure_saat', 0))
-            sure_dakika_input = int(request.form.get('sure_dakika', 0))
-            toplam_dakika = (sure_saat * 60) + sure_dakika_input
-            
-            is_gunlugu = IsGunlugu(
-                is_kodu=is_kodu,
-                tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
-                musteri_id=int(request.form['musteri_id']),
-                proje=request.form.get('proje', ''),
-                aktivite_turu=request.form['aktivite_turu'],
-                aciklama=request.form['aciklama'],
-                sorumlu_kisi=request.form.get('sorumlu_kisi', ''),
-                sure_dakika=toplam_dakika,
-                etiketler=request.form.get('etiketler', ''),
-                durum='Bekliyor',
-                revizyon_sayisi=0
-            )
-            db.session.add(is_gunlugu)
-            db.session.commit()
-            
-            logger.info(f"İş başarıyla eklendi - Kod: {is_kodu}")
-            flash(f'İş günlüğü başarıyla eklendi! İş Kodu: {is_kodu}', 'success')
-            
-            if musteri_id:
-                return redirect(url_for('musteri_detay', musteri_id=musteri_id))
-            return redirect(url_for('is_gunlugu'))
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"İş ekleme hatası: {str(e)}", exc_info=True)
-            flash(f'Hata: {str(e)}', 'error')
-    
-    return render_template('is_ekle.html', musteriler=musteriler)
-
+# İş Düzenleme Route'u
 @app.route('/is_duzenle/<int:is_id>', methods=['GET', 'POST'])
 def is_duzenle(is_id):
     """İş günlüğü düzenleme - cascade güncelleme"""
@@ -896,103 +884,6 @@ def is_duzenle(is_id):
     
     musteriler = Musteri.query.all()
     return render_template('is_duzenle.html', is_gunlugu=is_gunlugu, musteriler=musteriler)
-
-@app.route('/is_onay/<int:is_id>', methods=['POST'])
-def is_onay(is_id):
-    """İş onaylama - otomatik teslimat oluştur"""
-    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-    musteri = Musteri.query.get(is_gunlugu.musteri_id)
-    
-    # İş durumunu onaylandı yap
-    is_gunlugu.durum = 'Onaylandı'
-    
-    # En son revizyonu onayla
-    son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id)\
-        .order_by(Revizyon.revizyon_numarasi.desc()).first()
-    if son_revizyon:
-        son_revizyon.durum = 'Onaylandı'
-    
-    # Teslimat kodu oluştur
-    son_teslimat = Teslimat.query.filter_by(musteri_id=musteri.id)\
-        .order_by(Teslimat.id.desc()).first()
-    
-    if son_teslimat and son_teslimat.teslimat_kodu:
-        parts = son_teslimat.teslimat_kodu.split('-')
-        if len(parts) == 3:
-            son_numara = int(parts[2])
-            yeni_numara = son_numara + 1
-        else:
-            yeni_numara = 1
-    else:
-        yeni_numara = 1
-    
-    musteri_kodu_sayi = musteri.musteri_kodu.replace('MST-', '').replace('MST', '')
-    teslimat_kodu = f"TSL-MST{musteri_kodu_sayi}-{yeni_numara:03d}"
-    
-    # Otomatik teslimat oluştur
-    teslimat = Teslimat(
-        teslimat_kodu=teslimat_kodu,
-        is_gunlugu_id=is_id,
-        musteri_id=is_gunlugu.musteri_id,
-        baslik=is_gunlugu.aciklama or is_gunlugu.proje,
-        proje=is_gunlugu.proje,
-        sorumlu_kisi=is_gunlugu.sorumlu_kisi,
-        olusturma_tarihi=is_gunlugu.tarih,
-        teslim_tarihi=date.today(),
-        durum='Hazırlanıyor',
-        aciklama=f"İş Kodu: {is_gunlugu.is_kodu} - Otomatik oluşturuldu"
-    )
-    db.session.add(teslimat)
-    db.session.commit()
-    
-    flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu ({teslimat_kodu})!', 'success')
-    return redirect(url_for('teslimat_duzenle', teslimat_id=teslimat.id))
-
-@app.route('/is_red/<int:is_id>', methods=['POST'])
-def is_red(is_id):
-    """İş reddetme"""
-    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-    is_gunlugu.durum = 'Reddedildi'
-    
-    # En son revizyonu reddet
-    son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id)\
-        .order_by(Revizyon.revizyon_numarasi.desc()).first()
-    if son_revizyon:
-        son_revizyon.durum = 'Reddedildi'
-    
-    db.session.commit()
-    flash(f'{is_gunlugu.is_kodu} reddedildi!', 'danger')
-    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
-
-@app.route('/is_tekrar_revize/<int:is_id>', methods=['POST'])
-def is_tekrar_revize(is_id):
-    """İş tekrar revizeye gönder"""
-    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-    is_gunlugu.durum = 'Revizede'
-    
-    # En son revizyonun durumunu güncelle
-    son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id)\
-        .order_by(Revizyon.revizyon_numarasi.desc()).first()
-    if son_revizyon:
-        son_revizyon.durum = 'Tekrar Revize Geldi'
-    
-    db.session.commit()
-    return jsonify({
-        'success': True,
-        'is_id': is_id,
-        'is_kodu': is_gunlugu.is_kodu,
-        'revizyon_numarasi': (is_gunlugu.revizyon_sayisi or 0) + 1,
-        'message': f'{is_gunlugu.is_kodu} tekrar revizeye gönderildi!'
-    })
-
-@app.route('/is_onaya_gonder/<int:is_id>', methods=['POST'])
-def is_onaya_gonder(is_id):
-    """İşi onaya gönder"""
-    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-    is_gunlugu.durum = 'Onayda'
-    db.session.commit()
-    flash('İş onaya gönderildi!', 'success')
-    return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
 
 # Teslimat Düzenleme
 @app.route('/teslimat_duzenle/<int:teslimat_id>', methods=['GET', 'POST'])
@@ -1041,65 +932,7 @@ def teslimat_duzenle(teslimat_id):
     
     return render_template('teslimat_duzenle.html', teslimat=teslimat, musteriler=musteriler)
 
-# Revizyon Ekleme - Güncelleme
-@app.route('/revizyon_ekle', methods=['GET', 'POST'])
-@app.route('/revizyon_ekle/<int:musteri_id>', methods=['GET', 'POST'])
-def revizyon_ekle(musteri_id=None):
-    """Revizyon ekleme"""
-    if request.method == 'POST':
-        try:
-            is_gunlugu_id = int(request.form['is_gunlugu_id']) if request.form.get('is_gunlugu_id') else None
-            
-            # Önceki revizyonun durumunu "Tekrar Revize Geldi" yap
-            if is_gunlugu_id:
-                onceki_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_gunlugu_id)\
-                    .order_by(Revizyon.revizyon_numarasi.desc()).first()
-                if onceki_revizyon:
-                    onceki_revizyon.durum = 'Tekrar Revize Geldi'
-                
-                # İş günlüğü durumunu ve revizyon sayısını güncelle
-                is_gunlugu = IsGunlugu.query.get(is_gunlugu_id)
-                if is_gunlugu:
-                    is_gunlugu.durum = 'Revizede'
-                    is_gunlugu.revizyon_sayisi = (is_gunlugu.revizyon_sayisi or 0) + 1
-                    revizyon_numarasi = is_gunlugu.revizyon_sayisi
-                    baslik = f"Revizyon {revizyon_numarasi}"
-                else:
-                    revizyon_numarasi = 1
-                    baslik = "Revizyon 1"
-            else:
-                revizyon_numarasi = 1
-                baslik = "Revizyon 1"
-            
-            revizyon = Revizyon(
-                tarih=datetime.strptime(request.form['tarih'], '%Y-%m-%d').date(),
-                musteri_id=int(request.form['musteri_id']),
-                is_gunlugu_id=is_gunlugu_id,
-                revizyon_numarasi=revizyon_numarasi,
-                baslik=baslik,
-                revize_talep_eden=request.form['revize_talep_eden'],
-                revize_konusu=request.form['revize_konusu'],
-                durum='Bekliyor'
-            )
-            db.session.add(revizyon)
-            db.session.commit()
-            
-            flash(f'{baslik} başarıyla eklendi!', 'success')
-            if musteri_id:
-                return redirect(url_for('musteri_detay', musteri_id=musteri_id))
-            return redirect(url_for('musteriler'))
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Revizyon ekleme hatası: {str(e)}", exc_info=True)
-            flash(f'Hata: {str(e)}', 'error')
-    
-    musteriler = Musteri.query.filter_by(aktif=True).all()
-    teslimatlar = Teslimat.query.all()
-    return render_template('revizyon_ekle.html',
-                         musteriler=musteriler,
-                         teslimatlar=teslimatlar,
-                         secili_musteri_id=musteri_id)
-
+# Excel import/export
 @app.route('/excel_import', methods=['GET', 'POST'])
 def excel_import():
     if request.method == 'POST':
