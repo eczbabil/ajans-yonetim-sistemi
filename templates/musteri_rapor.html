@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}{{ musteri.ad }} - Raporlama{% endblock %}
+
+{% block breadcrumb %}
+<div class="container-fluid mt-3">
+    <div class="breadcrumb-modern">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('musteriler') }}">Müşteriler</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('musteri_detay', musteri_id=musteri.id) }}">{{ musteri.ad }}</a></li>
+                <li class="breadcrumb-item active">Raporlama</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Başlık -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold">
+                        <i class="bi bi-bar-chart"></i> {{ musteri.ad }} - Raporlama
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Müşteri Kodu: <strong>{{ musteri.musteri_kodu }}</strong> | 
+                        Detaylı İstatistikler ve Raporlar
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('musteri_detay', musteri_id=musteri.id) }}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-arrow-left"></i> Müşteri Detaya Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtre Seçici -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <label class="me-3 mb-0"><strong>Dönem Filtresi:</strong></label>
+                        <select id="donemFiltre" class="form-select form-select-sm" style="width: auto;" onchange="filtreDegistir()">
+                            <option value="ay" {% if filtre == 'ay' %}selected{% endif %}>Bu Ay</option>
+                            <option value="yil" {% if filtre == 'yil' %}selected{% endif %}>Bu Yıl</option>
+                            <option value="6ay" {% if filtre == '6ay' %}selected{% endif %}>Son 6 Ay</option>
+                            <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard İstatistik Kartları -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card primary">
+                <h4><i class="bi bi-clock-history"></i> Toplam Saat</h4>
+                <div class="value">{{ "%.1f"|format(toplam_saat) }}</div>
+                <div class="subtitle">Çalışma saati</div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card success">
+                <h4><i class="bi bi-check-circle"></i> Onaylanan</h4>
+                <div class="value">{{ onaylanan_teslimatlar }}</div>
+                <div class="subtitle">Tamamlanan teslimatlar</div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card warning">
+                <h4><i class="bi bi-hourglass-split"></i> Bekleyen</h4>
+                <div class="value">{{ devam_eden_teslimatlar }}</div>
+                <div class="subtitle">Devam eden teslimatlar</div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card info">
+                <h4><i class="bi bi-journal-text"></i> Toplam İş</h4>
+                <div class="value">{{ toplam_is }}</div>
+                <div class="subtitle">İş günlüğü kaydı</div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card secondary">
+                <h4><i class="bi bi-box-seam"></i> Teslimatlar</h4>
+                <div class="value">{{ toplam_teslimat }}</div>
+                <div class="subtitle">Toplam teslimat</div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-2">
+            <div class="kpi-card danger">
+                <h4><i class="bi bi-share"></i> Sosyal Medya</h4>
+                <div class="value">{{ sosyal_medya_teslimat }}</div>
+                <div class="subtitle">Sosyal medya içeriği</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detaylı Raporlar -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="bi bi-file-earmark-text"></i> İş Günlüğü Raporu</h5>
+                </div>
+                <div class="card-body">
+                    {% if isler %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>İş Kodu</th>
+                                    <th>Tarih</th>
+                                    <th>Aktivite</th>
+                                    <th>Açıklama</th>
+                                    <th>Sorumlu</th>
+                                    <th>Süre</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for is in isler %}
+                                <tr>
+                                    <td><strong>{{ is.is_kodu or '-' }}</strong></td>
+                                    <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
+                                    <td>{{ is.aciklama[:80] if is.aciklama else '-' }}</td>
+                                    <td>{{ is.sorumlu_kisi or '-' }}</td>
+                                    <td>{{ (is.sure_dakika // 60)|int }}s {{ (is.sure_dakika % 60)|int }}dk</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if is.durum == 'Onaylandı' %}bg-success
+                                            {% elif is.durum == 'Onayda' %}bg-info
+                                            {% elif is.durum == 'Revizede' %}bg-warning
+                                            {% elif is.durum == 'Reddedildi' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ is.durum or 'Bekliyor' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Bu dönemde iş günlüğü kaydı bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revizyon Raporu -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="bi bi-arrow-repeat"></i> Revizyon Raporu (Toplam: {{ toplam_revizyon }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if revizyonlar %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Revizyon</th>
+                                    <th>İş Kodu</th>
+                                    <th>Tarih</th>
+                                    <th>Talep Eden</th>
+                                    <th>Konu</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for revizyon in revizyonlar %}
+                                <tr>
+                                    <td><strong>{{ revizyon.baslik or 'Revizyon 1' }}</strong></td>
+                                    <td>
+                                        {% if revizyon.is_gunlugu_id %}
+                                            {% set is = isler|selectattr('id', 'equalto', revizyon.is_gunlugu_id)|first %}
+                                            {{ is.is_kodu if is else '-' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ revizyon.revize_talep_eden or '-' }}</td>
+                                    <td>{{ revizyon.revize_konusu[:60] if revizyon.revize_konusu else '-' }}...</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if revizyon.durum == 'Onaylandı' %}bg-success
+                                            {% elif revizyon.durum == 'Tekrar Revize Geldi' %}bg-warning
+                                            {% elif revizyon.durum == 'Reddedildi' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ revizyon.durum or 'Bekliyor' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Bu dönemde revizyon bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teslimat Raporu -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="bi bi-box-seam"></i> Teslimat Raporu</h5>
+                </div>
+                <div class="card-body">
+                    {% if teslimatlar %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Teslimat Kodu</th>
+                                    <th>İş Kodu</th>
+                                    <th>Başlık</th>
+                                    <th>Teslim Türü</th>
+                                    <th>Teslim Tarihi</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for teslimat in teslimatlar %}
+                                <tr>
+                                    <td><strong>{{ teslimat.teslimat_kodu }}</strong></td>
+                                    <td>
+                                        {% if teslimat.is_gunlugu_id %}
+                                            {% set is = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                            {{ is.is_kodu if is else '-' }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ teslimat.baslik[:60] if teslimat.baslik else '-' }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if teslimat.teslim_turu == 'Sosyal Medya' %}bg-danger
+                                            {% elif teslimat.teslim_turu == 'Konvensiyonel' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ teslimat.teslim_turu or 'Diğer' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if teslimat.durum == 'Teslim Edildi' %}bg-success
+                                            {% elif teslimat.durum == 'Tamamlandı' %}bg-success
+                                            {% elif teslimat.durum == 'Hazırlanıyor' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ teslimat.durum or 'Hazırlanıyor' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">Bu dönemde teslimat bulunmuyor.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sosyal Medya Performans Raporu -->
+    {% set sosyal_medya_teslimatlari = teslimatlar|selectattr('teslim_turu', 'equalto', 'Sosyal Medya')|list %}
+    {% if sosyal_medya_teslimatlari %}
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="bi bi-share"></i> Sosyal Medya Performans Raporu</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>İş Kodu</th>
+                                    <th>Platform</th>
+                                    <th>Gönderi Türü</th>
+                                    <th>Etkileşim</th>
+                                    <th>Görüntülenme</th>
+                                    <th>Beğeni</th>
+                                    <th>Yorum</th>
+                                    <th>Paylaşım</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for teslimat in sosyal_medya_teslimatlari %}
+                                <tr>
+                                    <td>
+                                        {% if teslimat.is_gunlugu_id %}
+                                            {% set is = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                            <strong>{{ is.is_kodu if is else '-' }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-info">{{ teslimat.platform or '-' }}</span></td>
+                                    <td>{{ teslimat.gonderi_turu or '-' }}</td>
+                                    <td>{{ teslimat.etkileşim or 0 }}</td>
+                                    <td>{{ teslimat.goruntulenme or 0 }}</td>
+                                    <td>{{ teslimat.begeni or 0 }}</td>
+                                    <td>{{ teslimat.yorum or 0 }}</td>
+                                    <td>{{ teslimat.paylasim or 0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="3">TOPLAM</th>
+                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='etkileşim') or 0 }}</th>
+                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='goruntulenme') or 0 }}</th>
+                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='begeni') or 0 }}</th>
+                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='yorum') or 0 }}</th>
+                                    <th>{{ sosyal_medya_teslimatlari|sum(attribute='paylasim') or 0 }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filtreDegistir() {
+    const filtre = document.getElementById('donemFiltre').value;
+    window.location.href = `{{ url_for('musteri_rapor', musteri_id=musteri.id) }}?filtre=${filtre}`;
+}
+</script>
+{% endblock %}
+

@@ -33,6 +33,10 @@
                     </p>
                 </div>
                 <div>
+                    <a href="{{ url_for('musteri_rapor', musteri_id=musteri.id) }}" 
+                       class="btn btn-info btn-lg me-2">
+                        <i class="bi bi-bar-chart"></i> Raporlar
+                    </a>
                     <a href="{{ url_for('musteri_rapor_indir', musteri_id=musteri.id) }}?filtre={{ filtre }}" 
                        class="btn btn-primary btn-lg">
                         <i class="bi bi-file-earmark-word"></i> Word Rapor İndir
@@ -61,56 +65,6 @@
         </div>
     </div>
 
-    <!-- Dashboard İstatistik Kartları -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-6 col-lg-2">
-            <div class="kpi-card primary">
-                <h4><i class="bi bi-clock-history"></i> Toplam Saat</h4>
-                <div class="value">{{ "%.1f"|format(toplam_saat) }}</div>
-                <div class="subtitle">Çalışma saati</div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-2">
-            <div class="kpi-card success">
-                <h4><i class="bi bi-check-circle"></i> Onaylanan</h4>
-                <div class="value">{{ onaylanan_teslimatlar }}</div>
-                <div class="subtitle">Tamamlanan teslimatlar</div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-2">
-            <div class="kpi-card warning">
-                <h4><i class="bi bi-hourglass-split"></i> Bekleyen</h4>
-                <div class="value">{{ devam_eden_teslimatlar }}</div>
-                <div class="subtitle">Devam eden teslimatlar</div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-2">
-            <div class="kpi-card info">
-                <h4><i class="bi bi-journal-text"></i> Toplam İş</h4>
-                <div class="value">{{ toplam_is }}</div>
-                <div class="subtitle">İş günlüğü kaydı</div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-2">
-            <div class="kpi-card secondary">
-                <h4><i class="bi bi-box-seam"></i> Teslimatlar</h4>
-                <div class="value">{{ toplam_teslimat }}</div>
-                <div class="subtitle">Toplam teslimat</div>
-            </div>
-        </div>
-        
-        <div class="col-md-6 col-lg-2">
-            <div class="kpi-card danger">
-                <h4><i class="bi bi-share"></i> Sosyal Medya</h4>
-                <div class="value">{{ sosyal_medya_teslimat }}</div>
-                <div class="subtitle">Sosyal medya içeriği</div>
-            </div>
-        </div>
-    </div>
 
     <!-- Hızlı İşlemler -->
     <div class="row mb-4">

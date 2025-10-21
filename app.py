@@ -355,6 +355,95 @@ def musteri_detay(musteri_id):
                          toplam_teslimat=toplam_teslimat,
                          sosyal_medya_teslimat=sosyal_medya_teslimat)
 
+@app.route('/musteri_rapor/<int:musteri_id>')
+def musteri_rapor(musteri_id):
+    """Müşteri raporlama sayfası - detaylı istatistikler"""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+    
+    musteri = Musteri.query.get_or_404(musteri_id)
+    
+    # Filtre parametresi
+    filtre = request.args.get('filtre', 'ay')
+    today = datetime.now().date()
+    
+    # Tarih aralığını belirle
+    if filtre == 'ay':
+        start_date = datetime(today.year, today.month, 1).date()
+        end_date = None
+    elif filtre == 'yil':
+        start_date = datetime(today.year, 1, 1).date()
+        end_date = None
+    elif filtre == '6ay':
+        start_date = today - timedelta(days=180)
+        end_date = None
+    else:  # 'tumu'
+        start_date = None
+        end_date = None
+    
+    # Teslimatlar, revizyonlar, işler - filtreye göre
+    teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
+    revizyon_query = Revizyon.query.filter_by(musteri_id=musteri_id)
+    is_gunlugu_query = IsGunlugu.query.filter_by(musteri_id=musteri_id)
+    
+    if start_date:
+        teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
+        revizyon_query = revizyon_query.filter(Revizyon.tarih >= start_date)
+        is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih >= start_date)
+    
+    if end_date:
+        teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
+        revizyon_query = revizyon_query.filter(Revizyon.tarih <= end_date)
+        is_gunlugu_query = is_gunlugu_query.filter(IsGunlugu.tarih <= end_date)
+    
+    teslimatlar = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).all()
+    revizyonlar = revizyon_query.order_by(Revizyon.tarih.desc()).all()
+    isler = is_gunlugu_query.order_by(IsGunlugu.tarih.desc()).all()
+    
+    # Dashboard İstatistikleri
+    # 1. Toplam çalışma saati (iş günlüğünden)
+    toplam_dakika_query = db.session.query(func.sum(IsGunlugu.sure_dakika))\
+        .filter(IsGunlugu.musteri_id == musteri_id)
+    if start_date:
+        toplam_dakika_query = toplam_dakika_query.filter(IsGunlugu.tarih >= start_date)
+    if end_date:
+        toplam_dakika_query = toplam_dakika_query.filter(IsGunlugu.tarih <= end_date)
+    toplam_dakika = toplam_dakika_query.scalar() or 0
+    toplam_saat = toplam_dakika / 60
+    
+    # 2. Onaylanan teslimatlar
+    onaylanan_teslimatlar = len([t for t in teslimatlar if t.durum in ['Tamamlandı', 'Teslim Edildi']])
+    
+    # 3. Devam eden teslimatlar
+    devam_eden_teslimatlar = len([t for t in teslimatlar if t.durum == 'Hazırlanıyor'])
+    
+    # 4. Toplam iş sayısı
+    toplam_is = len(isler)
+    
+    # 5. Toplam teslimat sayısı
+    toplam_teslimat = len(teslimatlar)
+    
+    # 6. Sosyal medya teslimat sayısı
+    sosyal_medya_teslimat = len([t for t in teslimatlar if t.teslim_turu == 'Sosyal Medya'])
+    
+    # 7. Revizyon sayısı
+    toplam_revizyon = len(revizyonlar)
+    
+    return render_template('musteri_rapor.html',
+                         musteri=musteri,
+                         teslimatlar=teslimatlar,
+                         revizyonlar=revizyonlar,
+                         isler=isler,
+                         filtre=filtre,
+                         # Dashboard istatistikleri
+                         toplam_saat=toplam_saat,
+                         onaylanan_teslimatlar=onaylanan_teslimatlar,
+                         devam_eden_teslimatlar=devam_eden_teslimatlar,
+                         toplam_is=toplam_is,
+                         toplam_teslimat=toplam_teslimat,
+                         sosyal_medya_teslimat=sosyal_medya_teslimat,
+                         toplam_revizyon=toplam_revizyon)
+
 @app.route('/musteri_ekle', methods=['GET', 'POST'])
 def musteri_ekle():
     if request.method == 'POST':
