@@ -1480,6 +1480,27 @@ def musteri_rapor_excel(musteri_id):
                     'Durum': arama.durum or ''
                 })
             pd.DataFrame(arama_data).to_excel(writer, sheet_name='Aramalar', index=False)
+            
+            # Tüm sheet'lerde sütun genişliklerini otomatik ayarla
+            for sheet_name in writer.sheets:
+                worksheet = writer.sheets[sheet_name]
+                for column in worksheet.columns:
+                    max_length = 0
+                    column_letter = column[0].column_letter
+                    
+                    for cell in column:
+                        try:
+                            if cell.value:
+                                # Türkçe karakter desteği için len yerine str kullan
+                                cell_length = len(str(cell.value))
+                                if cell_length > max_length:
+                                    max_length = cell_length
+                        except:
+                            pass
+                    
+                    # Genişliği ayarla (minimum 10, maksimum sınır yok - tam gösterilsin)
+                    adjusted_width = max(max_length + 2, 10)
+                    worksheet.column_dimensions[column_letter].width = adjusted_width
         
         output.seek(0)
         

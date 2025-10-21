@@ -187,7 +187,13 @@
                                         </a>
                                     </td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
-                                    <td>{{ is.aciklama[:60] if is.aciklama else '-' }}...</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
+                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                            {{ is.aciklama[:60] if is.aciklama else '-' }}{% if is.aciklama and is.aciklama|length > 60 %}...{% endif %}
+                                        </span>
+                                    </td>
                                     <td>{{ is.sorumlu_kisi or '-' }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>
@@ -248,7 +254,13 @@
                                     </td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
-                                    <td>{{ is.aciklama[:50] if is.aciklama else '-' }}...</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
+                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                            {{ is.aciklama[:50] if is.aciklama else '-' }}{% if is.aciklama and is.aciklama|length > 50 %}...{% endif %}
+                                        </span>
+                                    </td>
                                     <td>{{ is.sorumlu_kisi or '-' }}</td>
                                     <td>{{ (is.sure_dakika // 60)|int }}s {{ (is.sure_dakika % 60)|int }}dk</td>
                                     <td>
@@ -507,6 +519,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Bugünün tarihini ayarla
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('revizeTarihi').value = today;
+    
+    // Bootstrap tooltip'lerini aktif et
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 });
 
 // İş günlüğünden revizyon ekle

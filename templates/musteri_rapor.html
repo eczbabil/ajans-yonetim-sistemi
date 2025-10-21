@@ -158,7 +158,13 @@
                                     <td><strong>{{ is.is_kodu or '-' }}</strong></td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
-                                    <td>{{ is.aciklama[:80] if is.aciklama else '-' }}</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
+                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                            {{ is.aciklama[:80] if is.aciklama else '-' }}
+                                        </span>
+                                    </td>
                                     <td>{{ is.sorumlu_kisi or '-' }}</td>
                                     <td>{{ (is.sure_dakika // 60)|int }}s {{ (is.sure_dakika % 60)|int }}dk</td>
                                     <td>
@@ -219,7 +225,13 @@
                                     </td>
                                     <td>{{ revizyon.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td>{{ revizyon.revize_talep_eden or '-' }}</td>
-                                    <td>{{ revizyon.revize_konusu[:60] if revizyon.revize_konusu else '-' }}...</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
+                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="{{ revizyon.revize_konusu if revizyon.revize_konusu else '-' }}">
+                                            {{ revizyon.revize_konusu[:60] if revizyon.revize_konusu else '-' }}{% if revizyon.revize_konusu and revizyon.revize_konusu|length > 60 %}...{% endif %}
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge 
                                             {% if revizyon.durum == 'Onaylandı' %}bg-success
@@ -274,7 +286,13 @@
                                             -
                                         {% endif %}
                                     </td>
-                                    <td>{{ teslimat.baslik[:60] if teslimat.baslik else '-' }}</td>
+                                    <td>
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
+                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="{{ teslimat.baslik if teslimat.baslik else '-' }}">
+                                            {{ teslimat.baslik[:60] if teslimat.baslik else '-' }}{% if teslimat.baslik and teslimat.baslik|length > 60 %}...{% endif %}
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge 
                                             {% if teslimat.teslim_turu == 'Sosyal Medya' %}bg-danger
@@ -401,6 +419,14 @@
 
 {% block extra_js %}
 <script>
+// Bootstrap tooltip'lerini aktif et
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
 function filtreTipiDegisti() {
     const filtre = document.getElementById('donemFiltre').value;
     const ozelDiv = document.getElementById('ozelTarihDiv');

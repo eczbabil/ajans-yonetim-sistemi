@@ -78,15 +78,19 @@
                                         <strong>{{ is.proje or '-' }}</strong>
                                     </td>
                                     <td>
-                                        {% if is.aciklama %}
-                                            {% if is.aciklama|length > 50 %}
-                                                {{ is.aciklama[:50] }}...
+                                        <span class="text-truncate d-inline-block" style="max-width: 300px; cursor: help;" 
+                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                              title="{{ is.aciklama if is.aciklama else '-' }}">
+                                            {% if is.aciklama %}
+                                                {% if is.aciklama|length > 50 %}
+                                                    {{ is.aciklama[:50] }}...
+                                                {% else %}
+                                                    {{ is.aciklama }}
+                                                {% endif %}
                                             {% else %}
-                                                {{ is.aciklama }}
+                                                -
                                             {% endif %}
-                                        {% else %}
-                                            -
-                                        {% endif %}
+                                        </span>
                                     </td>
                                     <td>
                                         <span class="badge bg-info">
@@ -194,5 +198,17 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Bootstrap tooltip'lerini aktif et
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}
 
