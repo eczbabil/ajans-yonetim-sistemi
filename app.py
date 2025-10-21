@@ -400,6 +400,16 @@ def musteri_rapor(musteri_id):
     elif filtre == '6ay':
         start_date = today - timedelta(days=180)
         end_date = None
+    elif filtre == 'ozel':
+        # Özel tarih aralığı
+        baslangic = request.args.get('baslangic')
+        bitis = request.args.get('bitis')
+        if baslangic and bitis:
+            start_date = datetime.strptime(baslangic, '%Y-%m-%d').date()
+            end_date = datetime.strptime(bitis, '%Y-%m-%d').date()
+        else:
+            start_date = None
+            end_date = None
     else:  # 'tumu'
         start_date = None
         end_date = None
@@ -892,9 +902,9 @@ def revizyon_ekle(musteri_id=None):
             logger.info(f"Revizyon başarıyla eklendi - ID: {revizyon.id}")
             flash(f'{baslik} başarıyla eklendi!')
             
-            if musteri_id:
-                return redirect(url_for('musteri_detay', musteri_id=musteri_id))
-            return redirect(url_for('musteriler'))
+            # Her zaman müşteri detay sayfasına dön
+            musteri_id = int(request.form['musteri_id'])
+            return redirect(url_for('musteri_detay', musteri_id=musteri_id))
             
         except Exception as e:
             db.session.rollback()
@@ -1278,6 +1288,205 @@ def excel_export():
 
     flash('Veriler Excel dosyasına export edildi!')
     return redirect(url_for('index'))
+
+# Müşteri Excel Raporu İndirme
+@app.route('/musteri_rapor_excel/<int:musteri_id>')
+def musteri_rapor_excel(musteri_id):
+    """Excel formatında müşteri raporu indir"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        from datetime import datetime, timedelta
+        from flask import send_file
+        
+        musteri = Musteri.query.get_or_404(musteri_id)
+        
+        # Filtre parametresi
+        filtre = request.args.get('filtre', 'ay')
+        today = datetime.now().date()
+        
+        # Tarih aralığını belirle
+        if filtre == 'ay':
+            start_date = datetime(today.year, today.month, 1).date()
+            end_date = None
+        elif filtre == 'yil':
+            start_date = datetime(today.year, 1, 1).date()
+            end_date = None
+        elif filtre == '6ay':
+            start_date = today - timedelta(days=180)
+            end_date = None
+        elif filtre == 'ozel':
+            # Özel tarih aralığı
+            baslangic = request.args.get('baslangic')
+            bitis = request.args.get('bitis')
+            if baslangic and bitis:
+                start_date = datetime.strptime(baslangic, '%Y-%m-%d').date()
+                end_date = datetime.strptime(bitis, '%Y-%m-%d').date()
+            else:
+                start_date = None
+                end_date = None
+        else:  # 'tumu'
+            start_date = None
+            end_date = None
+        
+        # Verileri çek ve filtrele
+        isler_query = IsGunlugu.query.filter_by(musteri_id=musteri_id)
+        teslimatlar_query = Teslimat.query.filter_by(musteri_id=musteri_id)
+        revizyonlar_query = Revizyon.query.filter_by(musteri_id=musteri_id)
+        sosyal_medya_query = SosyalMedya.query.filter_by(musteri_id=musteri_id)
+        
+        if start_date:
+            isler_query = isler_query.filter(IsGunlugu.tarih >= start_date)
+            teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi >= start_date)
+            revizyonlar_query = revizyonlar_query.filter(Revizyon.tarih >= start_date)
+            sosyal_medya_query = sosyal_medya_query.filter(SosyalMedya.tarih >= start_date)
+        
+        if end_date:
+            isler_query = isler_query.filter(IsGunlugu.tarih <= end_date)
+            teslimatlar_query = teslimatlar_query.filter(Teslimat.teslim_tarihi <= end_date)
+            revizyonlar_query = revizyonlar_query.filter(Revizyon.tarih <= end_date)
+            sosyal_medya_query = sosyal_medya_query.filter(SosyalMedya.tarih <= end_date)
+        
+        isler = isler_query.order_by(IsGunlugu.tarih.desc()).all()
+        teslimatlar = teslimatlar_query.order_by(Teslimat.teslim_tarihi.desc()).all()
+        revizyonlar = revizyonlar_query.order_by(Revizyon.tarih.desc()).all()
+        sosyal_medyalar = sosyal_medya_query.order_by(SosyalMedya.tarih.desc()).all()
+        
+        # Excel oluştur
+        output = BytesIO()
+        
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Sheet 1: Özet
+            ozet_data = {
+                'Metrik': ['Toplam İş', 'Toplam Teslimat', 'Toplam Revizyon', 'Toplam Sosyal Medya', 
+                          'Onaylanan Teslimat', 'Bekleyen Teslimat', 'Toplam Süre (saat)'],
+                'Değer': [
+                    len(isler),
+                    len(teslimatlar),
+                    len(revizyonlar),
+                    len(sosyal_medyalar),
+                    len([t for t in teslimatlar if t.durum in ['Tamamlandı', 'Teslim Edildi']]),
+                    len([t for t in teslimatlar if t.durum == 'Hazırlanıyor']),
+                    round(sum([is_item.sure_dakika or 0 for is_item in isler]) / 60, 1)
+                ]
+            }
+            pd.DataFrame(ozet_data).to_excel(writer, sheet_name='Özet', index=False)
+            
+            # Sheet 2: İş Günlüğü
+            is_data = []
+            for is_item in isler:
+                is_data.append({
+                    'İş Kodu': is_item.is_kodu,
+                    'Tarih': is_item.tarih.strftime('%d.%m.%Y') if is_item.tarih else '',
+                    'Proje': is_item.proje or '',
+                    'Aktivite Türü': is_item.aktivite_turu or '',
+                    'Açıklama': is_item.aciklama or '',
+                    'Sorumlu': is_item.sorumlu_kisi or '',
+                    'Süre (dk)': is_item.sure_dakika or 0,
+                    'Süre (saat)': round((is_item.sure_dakika or 0) / 60, 1),
+                    'Durum': is_item.durum or '',
+                    'Revizyon Sayısı': is_item.revizyon_sayisi or 0
+                })
+            pd.DataFrame(is_data).to_excel(writer, sheet_name='İş Günlüğü', index=False)
+            
+            # Sheet 3: Teslimatlar
+            teslimat_data = []
+            for teslimat in teslimatlar:
+                # İş kodunu bul
+                is_gunlugu = IsGunlugu.query.get(teslimat.is_gunlugu_id) if teslimat.is_gunlugu_id else None
+                teslimat_data.append({
+                    'İş Kodu': is_gunlugu.is_kodu if is_gunlugu else '-',
+                    'Başlık': teslimat.baslik or '',
+                    'Tür': teslimat.teslim_turu or '',
+                    'Sorumlu': teslimat.sorumlu_kisi or '',
+                    'Teslim Tarihi': teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '',
+                    'Durum': teslimat.durum or '',
+                    'Platform': teslimat.platform or '',
+                    'Gönderi Türü': teslimat.gonderi_turu or '',
+                    'Etkileşim': teslimat.etkileşim or 0,
+                    'Görüntülenme': teslimat.goruntulenme or 0,
+                    'Beğeni': teslimat.begeni or 0,
+                    'Yorum': teslimat.yorum or 0,
+                    'Paylaşım': teslimat.paylasim or 0
+                })
+            pd.DataFrame(teslimat_data).to_excel(writer, sheet_name='Teslimatlar', index=False)
+            
+            # Sheet 4: Revizyonlar
+            revizyon_data = []
+            for revizyon in revizyonlar:
+                # İş kodunu bul
+                is_gunlugu = IsGunlugu.query.get(revizyon.is_gunlugu_id) if revizyon.is_gunlugu_id else None
+                revizyon_data.append({
+                    'İş Kodu': is_gunlugu.is_kodu if is_gunlugu else '-',
+                    'Revizyon No': revizyon.revizyon_numarasi or 1,
+                    'Tarih': revizyon.tarih.strftime('%d.%m.%Y') if revizyon.tarih else '',
+                    'Talep Eden': revizyon.revize_talep_eden or '',
+                    'Konu': revizyon.revize_konusu or '',
+                    'Durum': revizyon.durum or ''
+                })
+            pd.DataFrame(revizyon_data).to_excel(writer, sheet_name='Revizyonlar', index=False)
+            
+            # Sheet 5: Sosyal Medya
+            sm_data = []
+            # Teslimatlardan sosyal medya
+            for teslimat in [t for t in teslimatlar if t.teslim_turu == 'Sosyal Medya']:
+                is_gunlugu = IsGunlugu.query.get(teslimat.is_gunlugu_id) if teslimat.is_gunlugu_id else None
+                sm_data.append({
+                    'İş Kodu': is_gunlugu.is_kodu if is_gunlugu else '-',
+                    'Tarih': teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '',
+                    'Platform': teslimat.platform or '',
+                    'Gönderi Türü': teslimat.gonderi_turu or '',
+                    'Etkileşim': teslimat.etkileşim or 0,
+                    'Görüntülenme': teslimat.goruntulenme or 0,
+                    'Beğeni': teslimat.begeni or 0,
+                    'Yorum': teslimat.yorum or 0,
+                    'Paylaşım': teslimat.paylasim or 0,
+                    'Kaynak': 'Teslimat'
+                })
+            
+            # Manuel sosyal medya
+            for sm in sosyal_medyalar:
+                is_gunlugu = IsGunlugu.query.get(sm.is_gunlugu_id) if sm.is_gunlugu_id else None
+                sm_data.append({
+                    'İş Kodu': is_gunlugu.is_kodu if is_gunlugu else '-',
+                    'Tarih': sm.tarih.strftime('%d.%m.%Y') if sm.tarih else '',
+                    'Platform': sm.platform or '',
+                    'Gönderi Türü': sm.gonderi_turu or '',
+                    'Etkileşim': sm.etkileşim or 0,
+                    'Görüntülenme': sm.goruntulenme or 0,
+                    'Beğeni': sm.begeni or 0,
+                    'Yorum': sm.yorum or 0,
+                    'Paylaşım': sm.paylasim or 0,
+                    'Kaynak': 'Manuel'
+                })
+            pd.DataFrame(sm_data).to_excel(writer, sheet_name='Sosyal Medya', index=False)
+        
+        output.seek(0)
+        
+        # Dosya adı oluştur
+        tarih_str = ''
+        if filtre == 'ay':
+            tarih_str = today.strftime('%Y_%m')
+        elif filtre == 'yil':
+            tarih_str = str(today.year)
+        elif filtre == 'ozel' and request.args.get('baslangic') and request.args.get('bitis'):
+            tarih_str = f"{request.args.get('baslangic')}_{request.args.get('bitis')}"
+        else:
+            tarih_str = datetime.now().strftime('%Y%m%d')
+        
+        safe_name = musteri.ad.replace(' ', '_').replace('ş', 's').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o').replace('ç', 'c').replace('ı', 'i')
+        filename = f"{safe_name}_Rapor_{tarih_str}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        logger.error(f"Excel rapor hatası: {str(e)}", exc_info=True)
+        flash(f'Excel rapor oluşturulamadı: {str(e)}', 'error')
+        return redirect(url_for('musteri_rapor', musteri_id=musteri_id))
 
 if __name__ == '__main__':
     with app.app_context():

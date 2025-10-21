@@ -41,19 +41,38 @@
         </div>
     </div>
 
-    <!-- Filtre Seçici -->
+    <!-- Filtre Seçici ve Excel İndir -->
     <div class="row mb-4">
         <div class="col">
             <div class="card">
                 <div class="card-body p-3">
-                    <div class="d-flex align-items-center">
-                        <label class="me-3 mb-0"><strong>Dönem Filtresi:</strong></label>
-                        <select id="donemFiltre" class="form-select form-select-sm" style="width: auto;" onchange="filtreDegistir()">
-                            <option value="ay" {% if filtre == 'ay' %}selected{% endif %}>Bu Ay</option>
-                            <option value="yil" {% if filtre == 'yil' %}selected{% endif %}>Bu Yıl</option>
-                            <option value="6ay" {% if filtre == '6ay' %}selected{% endif %}>Son 6 Ay</option>
-                            <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
-                        </select>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <label class="me-3 mb-0"><strong>Dönem Filtresi:</strong></label>
+                            <select id="donemFiltre" class="form-select form-select-sm me-3" style="width: auto;" onchange="filtreTipiDegisti()">
+                                <option value="ay" {% if filtre == 'ay' %}selected{% endif %}>Bu Ay</option>
+                                <option value="yil" {% if filtre == 'yil' %}selected{% endif %}>Bu Yıl</option>
+                                <option value="6ay" {% if filtre == '6ay' %}selected{% endif %}>Son 6 Ay</option>
+                                <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
+                                <option value="ozel" {% if filtre == 'ozel' %}selected{% endif %}>Özel Tarih Aralığı</option>
+                            </select>
+                            
+                            <!-- Özel Tarih Seçimi -->
+                            <div id="ozelTarihDiv" style="display:{% if filtre == 'ozel' %}flex{% else %}none{% endif %};" class="align-items-center gap-2">
+                                <input type="date" id="baslangicTarihi" class="form-control form-control-sm" style="width: 150px;" value="{{ request.args.get('baslangic', '') }}">
+                                <span>-</span>
+                                <input type="date" id="bitisTarihi" class="form-control form-control-sm" style="width: 150px;" value="{{ request.args.get('bitis', '') }}">
+                                <button class="btn btn-sm btn-primary" onclick="ozelTarihUygula()">Uygula</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Excel İndir Butonu -->
+                        <div>
+                            <a href="{{ url_for('musteri_rapor_excel', musteri_id=musteri.id) }}?filtre={{ filtre }}{% if filtre == 'ozel' %}&baslangic={{ request.args.get('baslangic', '') }}&bitis={{ request.args.get('bitis', '') }}{% endif %}" 
+                               class="btn btn-success">
+                                <i class="bi bi-file-earmark-excel"></i> Excel Rapor İndir
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -382,9 +401,28 @@
 
 {% block extra_js %}
 <script>
-function filtreDegistir() {
+function filtreTipiDegisti() {
     const filtre = document.getElementById('donemFiltre').value;
-    window.location.href = `{{ url_for('musteri_rapor', musteri_id=musteri.id) }}?filtre=${filtre}`;
+    const ozelDiv = document.getElementById('ozelTarihDiv');
+    
+    if (filtre === 'ozel') {
+        ozelDiv.style.display = 'flex';
+    } else {
+        ozelDiv.style.display = 'none';
+        window.location.href = `{{ url_for('musteri_rapor', musteri_id=musteri.id) }}?filtre=${filtre}`;
+    }
+}
+
+function ozelTarihUygula() {
+    const baslangic = document.getElementById('baslangicTarihi').value;
+    const bitis = document.getElementById('bitisTarihi').value;
+    
+    if (!baslangic || !bitis) {
+        alert('Lütfen başlangıç ve bitiş tarihlerini seçin.');
+        return;
+    }
+    
+    window.location.href = `{{ url_for('musteri_rapor', musteri_id=musteri.id) }}?filtre=ozel&baslangic=${baslangic}&bitis=${bitis}`;
 }
 </script>
 {% endblock %}
