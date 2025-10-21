@@ -354,10 +354,15 @@
                                         </span>
                                     </td>
                                     <td>
-                                        {% if revizyon_sayilari.get(teslimat.id, 0) > 0 %}
-                                        <span class="badge bg-danger">{{ revizyon_sayilari.get(teslimat.id, 0) }} Revizyon</span>
+                                        {% if teslimat.is_gunlugu_id %}
+                                            {% set is_gunlugu = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                            {% if is_gunlugu and is_gunlugu.revizyon_sayisi > 0 %}
+                                                <span class="badge bg-danger">{{ is_gunlugu.revizyon_sayisi }} Revizyon</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">0</span>
+                                            {% endif %}
                                         {% else %}
-                                        <span class="badge bg-secondary">0</span>
+                                            <span class="badge bg-secondary">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
