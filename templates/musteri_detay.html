@@ -37,7 +37,7 @@
                        class="btn btn-info btn-lg me-2">
                         <i class="bi bi-bar-chart"></i> Raporlar
                     </a>
-                    <a href="{{ url_for('musteri_rapor_indir', musteri_id=musteri.id) }}?filtre={{ filtre }}" 
+                    <a href="{{ url_for('musteri_rapor_indir', musteri_id=musteri.id) }}" 
                        class="btn btn-primary btn-lg">
                         <i class="bi bi-file-earmark-word"></i> Word Rapor İndir
                     </a>
@@ -45,26 +45,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Filtre Seçici -->
-    <div class="row mb-4">
-        <div class="col">
-            <div class="card">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center">
-                        <label class="me-3 mb-0"><strong>Dönem Filtresi:</strong></label>
-                        <select id="donemFiltre" class="form-select form-select-sm" style="width: auto;" onchange="filtreDegistir()">
-                            <option value="ay" {% if filtre == 'ay' %}selected{% endif %}>Bu Ay</option>
-                            <option value="yil" {% if filtre == 'yil' %}selected{% endif %}>Bu Yıl</option>
-                            <option value="6ay" {% if filtre == '6ay' %}selected{% endif %}>Son 6 Ay</option>
-                            <option value="tumu" {% if filtre == 'tumu' %}selected{% endif %}>Tüm Zamanlar</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
 
     <!-- Hızlı İşlemler -->
     <div class="row mb-4">
@@ -75,12 +55,17 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-2">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-primary w-100 btn-lg">
-                                <i class="bi bi-plus-circle"></i> Yeni İş Ekle
+                                <i class="bi bi-plus-circle"></i> İş Ekle
                             </a>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-danger w-100 btn-lg">
+                                <i class="bi bi-share"></i> Sosyal Medya Ekle
+                            </a>
+                        </div>
+                        <div class="col-md-4">
                             <a href="{{ url_for('arama_ekle', musteri_id=musteri.id) }}" class="btn btn-info w-100 btn-lg">
                                 <i class="bi bi-telephone-plus"></i> Arama / Toplantı Ekle
                             </a>
@@ -527,11 +512,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('revizeTarihi').value = today;
 });
-
-function filtreDegistir() {
-    const filtre = document.getElementById('donemFiltre').value;
-    window.location.href = `{{ url_for('musteri_detay', musteri_id=musteri.id) }}?filtre=${filtre}`;
-}
 
 // İş günlüğünden revizyon ekle
 function revizyonModalAc(isId, isKodu, isAciklama, revizyonSayisi) {
