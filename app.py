@@ -1491,6 +1491,10 @@ def musteri_rapor_excel(musteri_id):
         
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             # Sheet 1: Özet
+            # Sosyal medya: Teslimatlardan + Manuel
+            sosyal_medya_teslimatlar = [t for t in teslimatlar if t.teslim_turu == 'Sosyal Medya']
+            toplam_sosyal_medya = len(sosyal_medya_teslimatlar) + len(sosyal_medyalar)
+            
             ozet_data = {
                 'Metrik': ['Toplam İş', 'Toplam Teslimat', 'Toplam Revizyon', 'Toplam Sosyal Medya', 
                           'Toplam Arama/Toplantı', 'Onaylanan Teslimat', 'Bekleyen Teslimat', 'Toplam Süre (saat)'],
@@ -1498,7 +1502,7 @@ def musteri_rapor_excel(musteri_id):
                     len(isler),
                     len(teslimatlar),
                     len(revizyonlar),
-                    len(sosyal_medyalar),
+                    toplam_sosyal_medya,  # Teslimat + Manuel
                     len(aramalar),
                     len([t for t in teslimatlar if t.durum in ['Tamamlandı', 'Teslim Edildi']]),
                     len([t for t in teslimatlar if t.durum == 'Hazırlanıyor']),
