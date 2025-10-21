@@ -75,24 +75,14 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-2">
-                        <div class="col-md-3">
-                            <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-primary w-100">
-                                <i class="bi bi-plus-circle"></i> İş Ekle
+                        <div class="col-md-6">
+                            <a href="{{ url_for('is_ekle', musteri_id=musteri.id) }}" class="btn btn-primary w-100 btn-lg">
+                                <i class="bi bi-plus-circle"></i> Yeni İş Ekle
                             </a>
                         </div>
-                        <div class="col-md-3">
-                            <a href="{{ url_for('teslimat_ekle', musteri_id=musteri.id) }}" class="btn btn-success w-100">
-                                <i class="bi bi-plus-circle"></i> Teslimat Ekle
-                            </a>
-                        </div>
-                        <div class="col-md-3">
-                            <a href="{{ url_for('sosyal_medya_ekle', musteri_id=musteri.id) }}" class="btn btn-info w-100">
-                                <i class="bi bi-plus-circle"></i> Sosyal Medya Ekle
-                            </a>
-                        </div>
-                        <div class="col-md-3">
-                            <a href="{{ url_for('revizyon_ekle', musteri_id=musteri.id) }}" class="btn btn-warning w-100">
-                                <i class="bi bi-plus-circle"></i> Revizyon Ekle
+                        <div class="col-md-6">
+                            <a href="{{ url_for('arama_ekle', musteri_id=musteri.id) }}" class="btn btn-info w-100 btn-lg">
+                                <i class="bi bi-telephone-plus"></i> Arama / Toplantı Ekle
                             </a>
                         </div>
                     </div>
