@@ -210,7 +210,11 @@
                             <tbody>
                                 {% for is in onayda_bekleyenler %}
                                 <tr>
-                                    <td><strong>{{ is.is_kodu }}</strong></td>
+                                    <td>
+                                        <a href="javascript:void(0)" onclick="isDetayAc({{ is.id }})" class="text-primary fw-bold" style="cursor:pointer; text-decoration:underline;">
+                                            {{ is.is_kodu }}
+                                        </a>
+                                    </td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td>{{ is.aciklama[:60] if is.aciklama else '-' }}...</td>
                                     <td>{{ is.sorumlu_kisi or '-' }}</td>
@@ -266,7 +270,11 @@
                             <tbody>
                                 {% for is in isler %}
                                 <tr>
-                                    <td><strong>{{ is.is_kodu or '-' }}</strong></td>
+                                    <td>
+                                        <a href="javascript:void(0)" onclick="isDetayAc({{ is.id }})" class="text-primary fw-bold" style="cursor:pointer; text-decoration:underline;">
+                                            {{ is.is_kodu or '-' }}
+                                        </a>
+                                    </td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>{{ is.aciklama[:50] if is.aciklama else '-' }}...</td>
@@ -314,11 +322,8 @@
     <div class="row mb-4">
         <div class="col">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
                     <h5><i class="bi bi-box-seam"></i> Teslimatlar</h5>
-                    <a href="{{ url_for('teslimat_ekle', musteri_id=musteri.id) }}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus"></i> Yeni Teslimat
-                    </a>
                 </div>
                 <div class="card-body">
                     {% if teslimatlar %}
@@ -326,7 +331,7 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>Teslimat Kodu</th>
+                                    <th>İş Kodu</th>
                                     <th>Başlık</th>
                                     <th>Tür</th>
                                     <th>Sorumlu</th>
@@ -339,39 +344,44 @@
                             <tbody>
                                 {% for teslimat in teslimatlar %}
                                 <tr>
-                                    <td><strong>{{ teslimat.teslimat_kodu }}</strong></td>
+                                    <td>
+                                        {% set is_gunlugu = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                        <strong>{{ is_gunlugu.is_kodu if is_gunlugu else '-' }}</strong>
+                                    </td>
                                     <td>{{ teslimat.baslik or '-' }}</td>
-                                    <td>{{ teslimat.teslim_turu or '-' }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if teslimat.teslim_turu == 'Sosyal Medya' %}bg-danger
+                                            {% elif teslimat.teslim_turu == 'Konvensiyonel' %}bg-info
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ teslimat.teslim_turu or 'Diğer' }}
+                                        </span>
+                                    </td>
                                     <td>{{ teslimat.sorumlu_kisi or '-' }}</td>
                                     <td>{{ teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat.teslim_tarihi else '-' }}</td>
                                     <td>
                                         <span class="badge 
-                                            {% if teslimat.durum == 'Onaylandı' %}bg-success
-                                            {% elif teslimat.durum == 'Bekliyor' %}bg-warning
-                                            {% elif teslimat.durum == 'Devam Ediyor' %}bg-info
+                                            {% if teslimat.durum == 'Teslim Edildi' %}bg-success
+                                            {% elif teslimat.durum == 'Tamamlandı' %}bg-success
+                                            {% elif teslimat.durum == 'Hazırlanıyor' %}bg-warning
                                             {% else %}bg-secondary{% endif %}">
-                                            {{ teslimat.durum or 'Bekliyor' }}
+                                            {{ teslimat.durum or 'Hazırlanıyor' }}
                                         </span>
                                     </td>
                                     <td>
-                                        {% if teslimat.is_gunlugu_id %}
-                                            {% set is_gunlugu = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
-                                            {% if is_gunlugu and is_gunlugu.revizyon_sayisi > 0 %}
-                                                <span class="badge bg-danger">{{ is_gunlugu.revizyon_sayisi }} Revizyon</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">0</span>
-                                            {% endif %}
+                                        {% set is_gunlugu = isler|selectattr('id', 'equalto', teslimat.is_gunlugu_id)|first %}
+                                        {% if is_gunlugu and is_gunlugu.revizyon_sayisi > 0 %}
+                                            <span class="badge bg-danger">{{ is_gunlugu.revizyon_sayisi }} Revizyon</span>
                                         {% else %}
-                                            <span class="badge bg-secondary">-</span>
+                                            <span class="badge bg-secondary">0</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-warning" onclick="teslimatRevizyonAc({{ teslimat.id }}, '{{ teslimat.baslik }}')">
-                                            <i class="bi bi-arrow-repeat"></i> Revizyon
-                                        </button>
-                                        <button class="btn btn-sm btn-info" onclick="sosyalMedyaEkle({{ teslimat.id }}, '{{ teslimat.baslik }}')">
-                                            <i class="bi bi-share"></i> Sosyal Medya
-                                        </button>
+                                        <form method="POST" action="{{ url_for('teslimat_sil', teslimat_id=teslimat.id) }}" style="display:inline;" onsubmit="return confirm('Bu teslimatı silmek istediğinizden emin misiniz?')">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Sil
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                                 {% endfor %}

@@ -68,9 +68,8 @@ class IsGunlugu(db.Model):
 
 class Teslimat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    teslimat_kodu = db.Column(db.String(30), unique=True)  # TSL-MST001-001, TSL-MST001-002, etc.
     musteri_id = db.Column(db.Integer, db.ForeignKey('musteri.id'))
-    is_gunlugu_id = db.Column(db.Integer, db.ForeignKey('is_gunlugu.id'), nullable=True)  # Hangi işten geldiği
+    is_gunlugu_id = db.Column(db.Integer, db.ForeignKey('is_gunlugu.id'), nullable=False)  # ZORUNLU - Her teslimat bir işten gelir
     aktivite_turu = db.Column(db.String(50))
     proje = db.Column(db.String(100))
     teslim_turu = db.Column(db.String(50))  # Sosyal Medya / Konvensiyonel / Diğer
@@ -676,26 +675,8 @@ def is_onay(is_id):
         if son_revizyon:
             son_revizyon.durum = 'Onaylandı'
         
-        # Teslimat kodu oluştur
-        son_teslimat = Teslimat.query.filter_by(musteri_id=musteri.id)\
-            .order_by(Teslimat.id.desc()).first()
-        
-        if son_teslimat and son_teslimat.teslimat_kodu:
-            parts = son_teslimat.teslimat_kodu.split('-')
-            if len(parts) == 3:
-                son_numara = int(parts[2])
-                yeni_numara = son_numara + 1
-            else:
-                yeni_numara = 1
-        else:
-            yeni_numara = 1
-        
-        musteri_kodu_sayi = musteri.musteri_kodu.replace('MST-', '').replace('MST', '')
-        teslimat_kodu = f"TSL-MST{musteri_kodu_sayi}-{yeni_numara:03d}"
-        
-        # Otomatik teslimat oluştur
+        # Otomatik teslimat oluştur (İş Kodu ile takip edilecek)
         teslimat = Teslimat(
-            teslimat_kodu=teslimat_kodu,
             is_gunlugu_id=is_id,
             musteri_id=is_gunlugu.musteri_id,
             baslik=is_gunlugu.aciklama or is_gunlugu.proje,
@@ -709,7 +690,7 @@ def is_onay(is_id):
         db.session.add(teslimat)
         db.session.commit()
         
-        flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu ({teslimat_kodu})!', 'success')
+        flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu!', 'success')
         return redirect(url_for('teslimat_duzenle', teslimat_id=teslimat.id))
     except Exception as e:
         db.session.rollback()
@@ -918,7 +899,10 @@ def teslimat_duzenle(teslimat_id):
                 teslimat.paylasim = None
             
             db.session.commit()
-            flash(f'{teslimat.teslimat_kodu} başarıyla güncellendi!', 'success')
+            # İş kodunu bul
+            is_gunlugu = IsGunlugu.query.get(teslimat.is_gunlugu_id)
+            is_kodu = is_gunlugu.is_kodu if is_gunlugu else 'Teslimat'
+            flash(f'{is_kodu} teslimatı başarıyla güncellendi!', 'success')
             return redirect(url_for('musteri_detay', musteri_id=teslimat.musteri_id))
         except Exception as e:
             db.session.rollback()

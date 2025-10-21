@@ -22,25 +22,23 @@
         <div class="col-md-10">
             <div class="card">
                 <div class="card-header bg-primary text-white">
-                    <h3><i class="bi bi-box-seam"></i> Teslimat Düzenle: {{ teslimat.teslimat_kodu }}</h3>
+                    <h3><i class="bi bi-box-seam"></i> Teslimat Düzenle
+                    {% for is in isler if is.id == teslimat.is_gunlugu_id %}
+                        - {{ is.is_kodu }}
+                    {% endfor %}
+                    </h3>
                 </div>
                 <div class="card-body">
                     <form method="POST" id="teslimatForm">
                         <!-- İş Kodu Bilgisi (readonly) -->
-                        {% if teslimat.is_gunlugu_id %}
                         <div class="alert alert-info">
                             <strong>İş Kodu:</strong> 
                             {% for is in isler if is.id == teslimat.is_gunlugu_id %}
                                 {{ is.is_kodu }}
                             {% endfor %}
                         </div>
-                        {% endif %}
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="teslimat_kodu" class="form-label">Teslimat Kodu</label>
-                                <input type="text" class="form-control" value="{{ teslimat.teslimat_kodu }}" readonly>
-                            </div>
                             <div class="col-md-6">
                                 <label for="teslim_turu" class="form-label">Teslim Türü *</label>
                                 <select class="form-control" id="teslim_turu" name="teslim_turu" required onchange="toggleSosyalMedyaFields()">
