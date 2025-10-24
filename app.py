@@ -91,6 +91,7 @@ class IsGunlugu(db.Model):
     etiketler = db.Column(db.String(200))
     durum = db.Column(db.String(20), default='Bekliyor')  # Bekliyor, Revizede, Onayda, Onaylandı, Reddedildi
     revizyon_sayisi = db.Column(db.Integer, default=0)  # Kaç revizyon yapıldı
+    ne_yapildi = db.Column(db.Text)  # Revizyon yoksa iş için ne yapıldığı
 
 class Teslimat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -757,53 +758,6 @@ def sosyal_medya_ekle(musteri_id=None):
 
     return render_template('sosyal_medya_ekle.html', musteriler=musteriler, isler=isler, secili_musteri_id=musteri_id)
 
-# API endpoint - İş detayı getir
-@app.route('/api/is_detay/<int:is_id>')
-def api_is_detay(is_id):
-    """İş detayı JSON olarak döndür"""
-    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
-    
-    # Revizyonları çek
-    revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi).all()
-    
-    # Teslimatı çek
-    teslimat = Teslimat.query.filter_by(is_gunlugu_id=is_id).first()
-    
-    result = {
-        'is_kodu': is_gunlugu.is_kodu,
-        'tarih': is_gunlugu.tarih.strftime('%d.%m.%Y'),
-        'proje': is_gunlugu.proje or '-',
-        'aktivite_turu': is_gunlugu.aktivite_turu or '-',
-        'aciklama': is_gunlugu.aciklama or '-',
-        'sorumlu_kisi': is_gunlugu.sorumlu_kisi or '-',
-        'sure_saat': (is_gunlugu.sure_dakika // 60) if is_gunlugu.sure_dakika else 0,
-        'sure_dakika': (is_gunlugu.sure_dakika % 60) if is_gunlugu.sure_dakika else 0,
-        'etiketler': is_gunlugu.etiketler or '-',
-        'durum': is_gunlugu.durum or 'Bekliyor',
-        'revizyon_sayisi': is_gunlugu.revizyon_sayisi or 0,
-        'revizyonlar': [{
-            'baslik': rev.baslik,
-            'tarih': rev.tarih.strftime('%d.%m.%Y'),
-            'talep_eden': rev.revize_talep_eden,
-            'konu': rev.revize_konusu,
-            'durum': rev.durum
-        } for rev in revizyonlar],
-        'teslimat': {
-            'var': teslimat is not None,
-            'teslim_turu': teslimat.teslim_turu if teslimat else None,
-            'durum': teslimat.durum if teslimat else None,
-            'teslim_tarihi': teslimat.teslim_tarihi.strftime('%d.%m.%Y') if teslimat and teslimat.teslim_tarihi else None,
-            'platform': teslimat.platform if teslimat else None,
-            'gonderi_turu': teslimat.gonderi_turu if teslimat else None,
-            'etkileşim': teslimat.etkileşim if teslimat else 0,
-            'goruntulenme': teslimat.goruntulenme if teslimat else 0,
-            'begeni': teslimat.begeni if teslimat else 0,
-            'yorum': teslimat.yorum if teslimat else 0,
-            'paylasim': teslimat.paylasim if teslimat else 0
-        } if teslimat else None
-    }
-    
-    return jsonify(result)
 
 # API endpoint - Müşteriye göre teslimatları getir
 @app.route('/api/teslimatlar/<int:musteri_id>')
@@ -858,6 +812,35 @@ def is_onaya_gonder(is_id):
     
     return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
 
+@app.route('/api/is_detay/<int:is_id>')
+def api_is_detay(is_id):
+    """İş detayını JSON olarak döndür"""
+    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+    revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi.asc()).all()
+    
+    return jsonify({
+        'is_kodu': is_gunlugu.is_kodu,
+        'tarih': is_gunlugu.tarih.strftime('%d.%m.%Y') if is_gunlugu.tarih else '',
+        'proje': is_gunlugu.proje or '',
+        'aktivite_turu': is_gunlugu.aktivite_turu or '',
+        'aciklama': is_gunlugu.aciklama or '',
+        'sorumlu_kisi': is_gunlugu.sorumlu_kisi or '',
+        'sure_dakika': is_gunlugu.sure_dakika or 0,
+        'sure_saat': round((is_gunlugu.sure_dakika or 0) / 60, 1),
+        'durum': is_gunlugu.durum or '',
+        'revizyon_sayisi': is_gunlugu.revizyon_sayisi or 0,
+        'ne_yapildi': is_gunlugu.ne_yapildi or '',
+        'revizyonlar': [{
+            'revizyon_numarasi': r.revizyon_numarasi,
+            'baslik': r.baslik or '',
+            'tarih': r.tarih.strftime('%d.%m.%Y') if r.tarih else '',
+            'talep_eden': r.revize_talep_eden or '',
+            'konu': r.revize_konusu or '',
+            'ne_yapildi': r.ne_yapildi or '',
+            'durum': r.durum or ''
+        } for r in revizyonlar]
+    })
+
 @app.route('/revizyon_onay/<int:is_id>')
 def revizyon_onay(is_id):
     """Revizyon onaylama sayfası"""
@@ -883,6 +866,10 @@ def revizyon_onayla(is_id):
                 revizyon.ne_yapildi = request.form[ne_yapildi_key]
                 revizyon.durum = 'Onaylandı'
         
+        # Revizyon yoksa iş için "ne yapıldı" bilgisini kaydet
+        if not revizyonlar and 'is_ne_yapildi' in request.form:
+            is_gunlugu.ne_yapildi = request.form['is_ne_yapildi']
+        
         # İş durumunu onaylandı yap
         is_gunlugu.durum = 'Onaylandı'
         
@@ -902,7 +889,7 @@ def revizyon_onayla(is_id):
         db.session.commit()
         
         flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu!', 'success')
-        return redirect(url_for('teslimat_duzenle', teslimat_id=teslimat.id))
+        return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
     except Exception as e:
         db.session.rollback()
         logger.error(f"Revizyon onay hatası: {str(e)}", exc_info=True)
@@ -915,33 +902,14 @@ def is_onay(is_id):
     try:
         is_gunlugu = IsGunlugu.query.get_or_404(is_id)
         
-        # Revizyon var mı kontrol et
+        # Revizyon var mı kontrol et - varsa detaylı onaylama sayfasına yönlendir
         revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
         if revizyonlar:
             # Revizyon varsa onaylama sayfasına yönlendir
             return redirect(url_for('revizyon_onay', is_id=is_id))
         
-        # Revizyon yoksa direkt onayla
-        musteri = Musteri.query.get(is_gunlugu.musteri_id)
-        is_gunlugu.durum = 'Onaylandı'
-        
-        # Otomatik teslimat oluştur
-        teslimat = Teslimat(
-            is_gunlugu_id=is_id,
-            musteri_id=is_gunlugu.musteri_id,
-            baslik=is_gunlugu.aciklama or is_gunlugu.proje,
-            proje=is_gunlugu.proje,
-            sorumlu_kisi=is_gunlugu.sorumlu_kisi,
-            olusturma_tarihi=is_gunlugu.tarih,
-            teslim_tarihi=date.today(),
-            durum='Tamamlandı',
-            aciklama=f"İş Kodu: {is_gunlugu.is_kodu} - Otomatik oluşturuldu"
-        )
-        db.session.add(teslimat)
-        db.session.commit()
-        
-        flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu!', 'success')
-        return redirect(url_for('teslimat_duzenle', teslimat_id=teslimat.id))
+        # Revizyon yoksa da detaylı onaylama sayfasına yönlendir (ne yapıldı zorunlu)
+        return redirect(url_for('revizyon_onay', is_id=is_id))
     except Exception as e:
         db.session.rollback()
         logger.error(f"İş onay hatası: {str(e)}", exc_info=True)
@@ -1527,7 +1495,7 @@ def musteri_rapor_excel(musteri_id):
             }
             pd.DataFrame(ozet_data).to_excel(writer, sheet_name='Özet', index=False)
             
-            # Sheet 2: İş Günlüğü
+            # Sheet 2: İş Günlüğü Detaylı (AI-Friendly)
             is_data = []
             for is_item in isler:
                 is_data.append({
@@ -1535,7 +1503,8 @@ def musteri_rapor_excel(musteri_id):
                     'Tarih': is_item.tarih.strftime('%d.%m.%Y') if is_item.tarih else '',
                     'Proje': is_item.proje or '',
                     'Aktivite Türü': is_item.aktivite_turu or '',
-                    'Açıklama': is_item.aciklama or '',
+                    'İş Açıklaması': is_item.aciklama or '',  # Tam metin
+                    'Ne Yapıldı': is_item.ne_yapildi or '',  # Revizyon yoksa ne yapıldı
                     'Sorumlu': is_item.sorumlu_kisi or '',
                     'Süre (dk)': is_item.sure_dakika or 0,
                     'Süre (saat)': round((is_item.sure_dakika or 0) / 60, 1),
@@ -1566,7 +1535,7 @@ def musteri_rapor_excel(musteri_id):
                 })
             pd.DataFrame(teslimat_data).to_excel(writer, sheet_name='Teslimatlar', index=False)
             
-            # Sheet 4: Revizyonlar
+            # Sheet 4: Revizyonlar Detaylı (AI-Friendly)
             revizyon_data = []
             for revizyon in revizyonlar:
                 # İş kodunu bul
@@ -1574,9 +1543,11 @@ def musteri_rapor_excel(musteri_id):
                 revizyon_data.append({
                     'İş Kodu': is_gunlugu.is_kodu if is_gunlugu else '-',
                     'Revizyon No': revizyon.revizyon_numarasi or 1,
+                    'Başlık': revizyon.baslik or '',
                     'Tarih': revizyon.tarih.strftime('%d.%m.%Y') if revizyon.tarih else '',
                     'Talep Eden': revizyon.revize_talep_eden or '',
-                    'Konu': revizyon.revize_konusu or '',
+                    'Revizyon Konusu': revizyon.revize_konusu or '',  # Tam metin
+                    'Ne Yapıldı': revizyon.ne_yapildi or '',  # Tam metin
                     'Durum': revizyon.durum or ''
                 })
             pd.DataFrame(revizyon_data).to_excel(writer, sheet_name='Revizyonlar', index=False)
@@ -1630,6 +1601,56 @@ def musteri_rapor_excel(musteri_id):
                     'Durum': arama.durum or ''
                 })
             pd.DataFrame(arama_data).to_excel(writer, sheet_name='Aramalar', index=False)
+            
+            # Sheet 7: AI Analiz Özeti (Yapay Zeka için özel sheet)
+            # Revizyon konularını frekansa göre say
+            from collections import Counter
+            revizyon_konulari = [r.revize_konusu for r in revizyonlar if r.revize_konusu]
+            top_konular = Counter(revizyon_konulari).most_common(5)
+            top_konular_str = '\n'.join([f"{i+1}. {konu[:100]} ({sayi} kez)" for i, (konu, sayi) in enumerate(top_konular)]) if top_konular else 'Revizyon yok'
+            
+            # En çok revize edilen iş
+            en_cok_revizeli_is = max(isler, key=lambda x: x.revizyon_sayisi or 0) if isler else None
+            
+            ai_ozet = {
+                'Metrik': [
+                    'Toplam İş Sayısı',
+                    'Toplam Revizyon Sayısı',
+                    'Ortalama Revizyon/İş',
+                    'En Çok Revize Edilen İş Kodu',
+                    'En Çok Revize Edilen İş - Revizyon Sayısı',
+                    'Toplam Revize Edilen İş',
+                    'Revizyonsuz Tamamlanan İş',
+                    'Revizyon Oranı (%)',
+                    'En Sık Revizyon Konuları (Top 5)',
+                    'Müşteri Memnuniyetsizlik Analizi'
+                ],
+                'Değer': [
+                    len(isler),
+                    len(revizyonlar),
+                    round(len(revizyonlar) / len(isler), 2) if len(isler) > 0 else 0,
+                    en_cok_revizeli_is.is_kodu if en_cok_revizeli_is else '-',
+                    en_cok_revizeli_is.revizyon_sayisi if en_cok_revizeli_is else 0,
+                    len([i for i in isler if (i.revizyon_sayisi or 0) > 0]),
+                    len([i for i in isler if (i.revizyon_sayisi or 0) == 0]),
+                    round((len([i for i in isler if (i.revizyon_sayisi or 0) > 0]) / len(isler) * 100), 1) if len(isler) > 0 else 0,
+                    top_konular_str,
+                    'Detaylı analiz için Revizyonlar sheet\'ine bakın. Her revizyonun konusu ve ne yapıldığı bilgisi mevcuttur.'
+                ],
+                'Açıklama': [
+                    'Rapor döneminde yapılan toplam iş sayısı',
+                    'Müşterinin talep ettiği toplam revizyon sayısı',
+                    'Her iş için ortalama revizyon sayısı (yüksek değer müşteri memnuniyetsizliği gösterir)',
+                    'En fazla revize edilen işin kodu',
+                    'Bu işe ait toplam revizyon sayısı',
+                    'En az bir revizyon almış işlerin sayısı',
+                    'Hiç revizyon almadan tamamlanan işlerin sayısı (mükemmel)',
+                    'İşlerin yüzde kaçı revize edildi',
+                    'En sık karşılaşılan revizyon konuları ve frekansları',
+                    'Tüm revizyon detayları için Revizyonlar sheet\'ine bakılmalıdır'
+                ]
+            }
+            pd.DataFrame(ai_ozet).to_excel(writer, sheet_name='AI Analiz Özeti', index=False)
             
             # Tüm sheet'lerde sütun genişliklerini otomatik ayarla
             for sheet_name in writer.sheets:

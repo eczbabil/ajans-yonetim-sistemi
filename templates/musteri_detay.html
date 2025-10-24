@@ -805,11 +805,26 @@ function isDetayAc(isId) {
                                                     <div class="accordion-body">
                                                         <p><strong>Tarih:</strong> ${rev.tarih}</p>
                                                         <p><strong>Talep Eden:</strong> ${rev.talep_eden}</p>
-                                                        <p><strong>Konu:</strong> ${rev.konu}</p>
+                                                        <div class="alert alert-warning mb-2">
+                                                            <strong>Revizyon Konusu:</strong><br>
+                                                            ${rev.konu || '-'}
+                                                        </div>
+                                                        ${rev.ne_yapildi ? `
+                                                            <div class="alert alert-success">
+                                                                <strong>Ne Yapıldı:</strong><br>
+                                                                ${rev.ne_yapildi}
+                                                            </div>
+                                                        ` : ''}
                                                     </div>
                                                 </div>
                                             </div>
                                         `).join('')}
+                                    </div>
+                                ` : data.ne_yapildi ? `
+                                    <hr>
+                                    <h6 class="fw-bold mb-3">İş İçin Ne Yapıldı</h6>
+                                    <div class="alert alert-success">
+                                        ${data.ne_yapildi}
                                     </div>
                                 ` : ''}
                                 
