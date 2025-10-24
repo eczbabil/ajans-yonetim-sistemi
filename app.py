@@ -139,6 +139,7 @@ class Revizyon(db.Model):
     baslik = db.Column(db.String(100))  # "Revizyon 1", "Revizyon 2", etc.
     revize_talep_eden = db.Column(db.String(100))
     revize_konusu = db.Column(db.Text)
+    ne_yapildi = db.Column(db.Text)  # Revizyon onaylanırken ne yapıldığı
     durum = db.Column(db.String(20), default='Bekliyor')
 
 class Arama(db.Model):
@@ -857,22 +858,74 @@ def is_onaya_gonder(is_id):
     
     return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
 
-@app.route('/is_onay/<int:is_id>', methods=['POST'])
-def is_onay(is_id):
-    """İşi onayla ve otomatik teslimat oluştur"""
+@app.route('/revizyon_onay/<int:is_id>')
+def revizyon_onay(is_id):
+    """Revizyon onaylama sayfası"""
+    is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+    revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi.asc()).all()
+    
+    return render_template('revizyon_onay.html', 
+                         is_gunlugu=is_gunlugu, 
+                         revizyonlar=revizyonlar)
+
+@app.route('/revizyon_onayla/<int:is_id>', methods=['POST'])
+def revizyon_onayla(is_id):
+    """Revizyonları onayla ve işi tamamla"""
     try:
         is_gunlugu = IsGunlugu.query.get_or_404(is_id)
         musteri = Musteri.query.get(is_gunlugu.musteri_id)
         
+        # Revizyonları güncelle
+        revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
+        for revizyon in revizyonlar:
+            ne_yapildi_key = f'ne_yapildi_{revizyon.id}'
+            if ne_yapildi_key in request.form:
+                revizyon.ne_yapildi = request.form[ne_yapildi_key]
+                revizyon.durum = 'Onaylandı'
+        
         # İş durumunu onaylandı yap
         is_gunlugu.durum = 'Onaylandı'
         
-        # Sadece SON revizyonu "Onaylandı" yap
-        son_revizyon = Revizyon.query.filter_by(is_gunlugu_id=is_id).order_by(Revizyon.revizyon_numarasi.desc()).first()
-        if son_revizyon:
-            son_revizyon.durum = 'Onaylandı'
+        # Otomatik teslimat oluştur
+        teslimat = Teslimat(
+            is_gunlugu_id=is_id,
+            musteri_id=is_gunlugu.musteri_id,
+            baslik=is_gunlugu.aciklama or is_gunlugu.proje,
+            proje=is_gunlugu.proje,
+            sorumlu_kisi=is_gunlugu.sorumlu_kisi,
+            olusturma_tarihi=is_gunlugu.tarih,
+            teslim_tarihi=date.today(),
+            durum='Tamamlandı',
+            aciklama=f"İş Kodu: {is_gunlugu.is_kodu} - Otomatik oluşturuldu"
+        )
+        db.session.add(teslimat)
+        db.session.commit()
         
-        # Otomatik teslimat oluştur (İş Kodu ile takip edilecek)
+        flash(f'{is_gunlugu.is_kodu} onaylandı ve teslimat oluşturuldu!', 'success')
+        return redirect(url_for('teslimat_duzenle', teslimat_id=teslimat.id))
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Revizyon onay hatası: {str(e)}", exc_info=True)
+        flash(f'Hata: {str(e)}', 'error')
+        return redirect(url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id))
+
+@app.route('/is_onay/<int:is_id>', methods=['POST'])
+def is_onay(is_id):
+    """İşi onayla ve otomatik teslimat oluştur (eski yöntem - sadece revizyon yoksa)"""
+    try:
+        is_gunlugu = IsGunlugu.query.get_or_404(is_id)
+        
+        # Revizyon var mı kontrol et
+        revizyonlar = Revizyon.query.filter_by(is_gunlugu_id=is_id).all()
+        if revizyonlar:
+            # Revizyon varsa onaylama sayfasına yönlendir
+            return redirect(url_for('revizyon_onay', is_id=is_id))
+        
+        # Revizyon yoksa direkt onayla
+        musteri = Musteri.query.get(is_gunlugu.musteri_id)
+        is_gunlugu.durum = 'Onaylandı'
+        
+        # Otomatik teslimat oluştur
         teslimat = Teslimat(
             is_gunlugu_id=is_id,
             musteri_id=is_gunlugu.musteri_id,

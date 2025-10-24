@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Revizyon Onaylama - {{ is_gunlugu.is_kodu }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-check-circle-fill text-success"></i> Revizyon Onaylama</h2>
+                <a href="{{ url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id) }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Geri Dön
+                </a>
+            </div>
+
+            <!-- İş Bilgileri -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-briefcase"></i> İş Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>İş Kodu:</strong> {{ is_gunlugu.is_kodu }}<br>
+                            <strong>Proje:</strong> {{ is_gunlugu.proje }}<br>
+                            <strong>Tarih:</strong> {{ is_gunlugu.tarih.strftime('%d.%m.%Y') }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Aktivite Türü:</strong> {{ is_gunlugu.aktivite_turu }}<br>
+                            <strong>Sorumlu Kişi:</strong> {{ is_gunlugu.sorumlu_kisi }}<br>
+                            <strong>Revizyon Sayısı:</strong> {{ is_gunlugu.revizyon_sayisi or 0 }}
+                        </div>
+                    </div>
+                    {% if is_gunlugu.aciklama %}
+                    <div class="mt-3">
+                        <strong>Açıklama:</strong><br>
+                        <div class="border p-2 bg-light rounded">{{ is_gunlugu.aciklama }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Revizyon Onaylama Formu -->
+            <form method="POST" action="{{ url_for('revizyon_onayla', is_id=is_gunlugu.id) }}">
+                {% if revizyonlar %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Revizyonlar</h5>
+                        </div>
+                        <div class="card-body">
+                            {% for revizyon in revizyonlar %}
+                            <div class="revizyon-item mb-4 p-3 border rounded">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary">{{ revizyon.baslik }}</h6>
+                                        <p><strong>Revize Talep Eden:</strong> {{ revizyon.revize_talep_eden }}</p>
+                                        <p><strong>Tarih:</strong> {{ revizyon.tarih.strftime('%d.%m.%Y') }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <span class="badge 
+                                            {% if revizyon.durum == 'Onaylandı' %}bg-success
+                                            {% elif revizyon.durum == 'Tekrar Revize Geldi' %}bg-secondary
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ revizyon.durum }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <strong>Revizyon Konusu:</strong><br>
+                                    <div class="border p-2 bg-light rounded mb-3">{{ revizyon.revize_konusu }}</div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <label for="ne_yapildi_{{ revizyon.id }}" class="form-label">
+                                        <strong>Ne Yapıldı? <span class="text-danger">*</span></strong>
+                                    </label>
+                                    <textarea 
+                                        class="form-control" 
+                                        id="ne_yapildi_{{ revizyon.id }}" 
+                                        name="ne_yapildi_{{ revizyon.id }}" 
+                                        rows="3" 
+                                        placeholder="Bu revizyon için ne yapıldığını detaylı olarak açıklayın..."
+                                        required>{{ revizyon.ne_yapildi or '' }}</textarea>
+                                    <div class="form-text">Bu alan zorunludur. Revizyon için yapılan işlemleri detaylı olarak yazın.</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Revizyon yoksa sadece iş onaylama -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Revizyon Bulunamadı</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Bu iş için henüz revizyon kaydı bulunmuyor. İşi doğrudan onaylayabilirsiniz.</p>
+                            
+                            <div class="mt-3">
+                                <label for="is_ne_yapildi" class="form-label">
+                                    <strong>Bu İş İçin Ne Yapıldı? <span class="text-danger">*</span></strong>
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="is_ne_yapildi" 
+                                    name="is_ne_yapildi" 
+                                    rows="3" 
+                                    placeholder="Bu iş için ne yapıldığını detaylı olarak açıklayın..."
+                                    required></textarea>
+                                <div class="form-text">Bu alan zorunludur. İş için yapılan işlemleri detaylı olarak yazın.</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Onay Butonları -->
+                <div class="card">
+                    <div class="card-body text-center">
+                        <button type="submit" class="btn btn-success btn-lg me-3">
+                            <i class="bi bi-check-circle"></i> İşi Onayla ve Teslimat Oluştur
+                        </button>
+                        <a href="{{ url_for('musteri_detay', musteri_id=is_gunlugu.musteri_id) }}" class="btn btn-secondary btn-lg">
+                            <i class="bi bi-x-circle"></i> İptal
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const requiredFields = document.querySelectorAll('textarea[required]');
+    let allFilled = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            allFilled = false;
+            field.classList.add('is-invalid');
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!allFilled) {
+        e.preventDefault();
+        alert('Lütfen tüm zorunlu alanları doldurun!');
+    }
+});
+</script>
+{% endblock %}
