@@ -155,7 +155,15 @@
                             <tbody>
                                 {% for is in isler %}
                                 <tr>
-                                    <td><strong>{{ is.is_kodu or '-' }}</strong></td>
+                                    <td>
+                                        {% if is.is_kodu %}
+                                            <a href="javascript:void(0)" onclick="isDetayAc({{ is.id }})" class="text-primary fw-bold" style="cursor:pointer; text-decoration:underline;">
+                                                {{ is.is_kodu }}
+                                            </a>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
                                     <td>{{ is.tarih.strftime('%d.%m.%Y') }}</td>
                                     <td><span class="badge bg-info">{{ is.aktivite_turu or '-' }}</span></td>
                                     <td>
@@ -471,6 +479,96 @@ function ozelTarihUygula() {
     }
     
     window.location.href = `{{ url_for('musteri_rapor', musteri_id=musteri.id) }}?filtre=ozel&baslangic=${baslangic}&bitis=${bitis}`;
+}
+
+// İş Detay Modal
+let isDetayModal;
+function isDetayAc(isId) {
+    fetch(`/api/is_detay/${isId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Modal içeriğini doldur
+            let modalHtml = `
+                <div class="modal fade" id="isDetayModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title"><i class="bi bi-file-text"></i> İş Detayı: ${data.is_kodu}</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <h6 class="fw-bold mb-3">Genel Bilgiler</h6>
+                                <table class="table table-sm table-borderless">
+                                    <tr><th width="30%">Tarih:</th><td>${data.tarih}</td></tr>
+                                    <tr><th>Proje:</th><td>${data.proje}</td></tr>
+                                    <tr><th>Aktivite Türü:</th><td><span class="badge bg-info">${data.aktivite_turu}</span></td></tr>
+                                    <tr><th>Açıklama:</th><td>${data.aciklama}</td></tr>
+                                    <tr><th>Sorumlu Kişi:</th><td>${data.sorumlu_kisi}</td></tr>
+                                    <tr><th>Süre:</th><td>${data.sure_saat}s ${data.sure_dakika}dk</td></tr>
+                                    <tr><th>Durum:</th><td><span class="badge bg-${data.durum=='Onaylandı'?'success':data.durum=='Revizede'?'warning':data.durum=='Onayda'?'info':data.durum=='Reddedildi'?'danger':'secondary'}">${data.durum}</span></td></tr>
+                                </table>
+                                
+                                ${data.revizyonlar.length > 0 ? `
+                                    <hr>
+                                    <h6 class="fw-bold mb-3">Revizyonlar (${data.revizyon_sayisi})</h6>
+                                    <div class="accordion" id="revizyonAccordion">
+                                        ${data.revizyonlar.map((rev, idx) => `
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button ${idx>0?'collapsed':''}" type="button" data-bs-toggle="collapse" data-bs-target="#revizyon${idx}">
+                                                        ${rev.baslik} - <span class="badge bg-${rev.durum=='Onaylandı'?'success':rev.durum=='Tekrar Revize Geldi'?'warning':'secondary'} ms-2">${rev.durum}</span>
+                                                    </button>
+                                                </h2>
+                                                <div id="revizyon${idx}" class="accordion-collapse collapse ${idx==0?'show':''}" data-bs-parent="#revizyonAccordion">
+                                                    <div class="accordion-body">
+                                                        <p><strong>Tarih:</strong> ${rev.tarih}</p>
+                                                        <p><strong>Talep Eden:</strong> ${rev.talep_eden}</p>
+                                                        <div class="alert alert-warning mb-2">
+                                                            <strong>Revizyon Konusu:</strong><br>
+                                                            ${rev.konu || '-'}
+                                                        </div>
+                                                        ${rev.ne_yapildi ? `
+                                                            <div class="alert alert-success">
+                                                                <strong>Ne Yapıldı:</strong><br>
+                                                                ${rev.ne_yapildi}
+                                                            </div>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : data.ne_yapildi ? `
+                                    <hr>
+                                    <h6 class="fw-bold mb-3">İş İçin Ne Yapıldı</h6>
+                                    <div class="alert alert-success">
+                                        ${data.ne_yapildi}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Eski modalı kaldır
+            const oldModal = document.getElementById('isDetayModal');
+            if (oldModal) oldModal.remove();
+            
+            // Yeni modalı ekle
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Bootstrap modal aç
+            isDetayModal = new bootstrap.Modal(document.getElementById('isDetayModal'));
+            isDetayModal.show();
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            alert('İş detayları yüklenirken hata oluştu.');
+        });
 }
 </script>
 {% endblock %}
