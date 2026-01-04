@@ -55,15 +55,16 @@ def login_required(f):
     return decorated_function
 
 # Her istekten önce login kontrol et
-@app.before_request
-def check_login():
-    # Login gerektirmeyen sayfalar
-    allowed_routes = ['login', 'reset_password', 'static']
-    
-    if request.endpoint and request.endpoint not in allowed_routes:
-        if 'logged_in' not in session:
-            flash('Lütfen giriş yapın.', 'warning')
-            return redirect(url_for('login'))
+# DEVRE DIŞI: Şifre kontrolü kaldırıldı
+# @app.before_request
+# def check_login():
+#     # Login gerektirmeyen sayfalar
+#     allowed_routes = ['login', 'reset_password', 'static']
+#     
+#     if request.endpoint and request.endpoint not in allowed_routes:
+#         if 'logged_in' not in session:
+#             flash('Lütfen giriş yapın.', 'warning')
+#             return redirect(url_for('login'))
 
 # Veritabanı modelleri
 class Musteri(db.Model):
